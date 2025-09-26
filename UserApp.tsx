@@ -585,9 +585,9 @@ const UserApp: React.FC = () => {
       const isOpen = !isNotificationPanelOpen;
       setNotificationPanelOpen(isOpen);
       if (isOpen && user) {
-          const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
-          if (unreadIds.length > 0) {
-              await firebaseService.markNotificationsAsRead(user.id, unreadIds);
+          const unreadNotifications = notifications.filter(n => !n.read);
+          if (unreadNotifications.length > 0) {
+              await firebaseService.markNotificationsAsRead(user.id, unreadNotifications);
           }
       }
   }

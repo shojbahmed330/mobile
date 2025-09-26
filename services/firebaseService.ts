@@ -1,4 +1,3 @@
-
 // @ts-nocheck
 import {
     getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, addDoc, deleteDoc, onSnapshot,
@@ -65,6 +64,14 @@ const docToPost = (doc: DocumentSnapshot): Post => {
     } as Post;
 }
 
+const getDailyCollectionName = (date: Date | string): string => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    const year = d.getUTCFullYear();
+    const month = (d.getUTCMonth() + 1).toString().padStart(2, '0');
+    const day = d.getUTCDate().toString().padStart(2, '0');
+    return `notifications_${year}_${month}_${day}`;
+};
+
 const _createNotification = async (recipientId: string, type: Notification['type'], actor: User, options: Partial<Notification> = {}) => {
     if (recipientId === actor.id) {
         return; // Don't notify users of their own actions
@@ -94,16 +101,21 @@ const _createNotification = async (recipientId: string, type: Notification['type
         if (!isEnabled) {
             return;
         }
+        
+        const collectionName = getDailyCollectionName(new Date());
+        const notificationRef = collection(db, collectionName);
+        
+        const actorInfo: Author = {
+            id: actor.id,
+            name: actor.name,
+            avatarUrl: actor.avatarUrl,
+            username: actor.username,
+        };
 
-        const notificationRef = collection(db, 'users', recipientId, 'notifications');
         const notificationData: Omit<Notification, 'id'> = {
+            recipientId,
             type,
-            user: {
-                id: actor.id,
-                name: actor.name,
-                avatarUrl: actor.avatarUrl,
-                username: actor.username
-            } as User,
+            user: actorInfo,
             read: false,
             createdAt: new Date().toISOString(),
             ...options
@@ -316,30 +328,76 @@ export const firebaseService = {
         }
     },
 
-    // --- Notifications ---
-    listenToNotifications(userId: string, callback: (notifications: Notification[]) => void) {
-        const notificationsRef = collection(db, 'users', userId, 'notifications');
-        const q = query(notificationsRef, orderBy('createdAt', 'desc'), limit(20));
-        return onSnapshot(q, (snapshot) => {
-            const notifications = snapshot.docs.map(doc => {
-                const data = doc.data();
-                return {
-                    id: doc.id,
-                    ...data,
-                    createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
-                } as Notification;
+    // --- Notifications (Sharded Daily) ---
+    listenToNotifications(userId: string, callback: (notifications: Notification[]) => void): () => void {
+        const allUnsubscribes: (() => void)[] = [];
+        const dailyNotifications = new Map<string, Notification[]>();
+
+        const processAndCallback = () => {
+            const combined = Array.from(dailyNotifications.values()).flat();
+            combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            callback(combined.slice(0, 50));
+        };
+
+        for (let i = 0; i < 30; i++) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const collectionName = getDailyCollectionName(date);
+
+            const notificationsRef = collection(db, collectionName);
+            const q = query(notificationsRef, where('recipientId', '==', userId));
+            
+            const unsubscribe = onSnapshot(q, (snapshot) => {
+                const notifications = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        ...data,
+                        createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
+                    } as Notification;
+                });
+                
+                dailyNotifications.set(collectionName, notifications);
+                processAndCallback();
+            }, (error) => {
+                console.warn(`Could not listen to collection ${collectionName}. It may not exist yet.`, error.code);
+                // If a collection doesn't exist, it might throw a permission error if rules are strict.
+                // We'll just remove it from our map and continue.
+                if (dailyNotifications.has(collectionName)) {
+                    dailyNotifications.delete(collectionName);
+                    processAndCallback();
+                }
             });
-            callback(notifications);
-        });
+
+            allUnsubscribes.push(unsubscribe);
+        }
+
+        return () => {
+            allUnsubscribes.forEach(unsub => unsub());
+        };
     },
 
-    async markNotificationsAsRead(userId: string, notificationIds: string[]): Promise<void> {
-        if (notificationIds.length === 0) return;
-        const batch = writeBatch(db);
-        const notificationsRef = collection(db, 'users', userId, 'notifications');
-        notificationIds.forEach(id => {
-            batch.update(doc(notificationsRef, id), { read: true });
+    async markNotificationsAsRead(userId: string, notificationsToMark: Notification[]): Promise<void> {
+        if (notificationsToMark.length === 0) return;
+
+        const groupedByCollection = new Map<string, string[]>();
+        notificationsToMark.forEach(n => {
+            const collectionName = getDailyCollectionName(n.createdAt);
+            if (!groupedByCollection.has(collectionName)) {
+                groupedByCollection.set(collectionName, []);
+            }
+            groupedByCollection.get(collectionName)!.push(n.id);
         });
+
+        const batch = writeBatch(db);
+
+        groupedByCollection.forEach((ids, collectionName) => {
+            ids.forEach(id => {
+                const docRef = doc(db, collectionName, id);
+                batch.update(docRef, { read: true });
+            });
+        });
+
         await batch.commit();
     },
 
