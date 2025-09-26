@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { AppView, User, VoiceState, Post, Comment, ScrollState, Notification, Campaign, Group, Story, Conversation, Call } from './types';
 import AuthScreen from './components/AuthScreen';
@@ -186,6 +187,7 @@ const UserApp: React.FC = () => {
   activeChatsRef.current = activeChats;
   const conversationsRef = useRef<Conversation[]>([]);
   const previousLastMessageIdsRef = useRef(new Map<string, string>());
+  const isFirstConversationLoad = useRef(true);
 
   const notificationPanelRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -247,6 +249,8 @@ const UserApp: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
+    isFirstConversationLoad.current = true; 
+
     const unsubscribe = firebaseService.listenToConversations(user.id, (newConvos) => {
         const convoWithNewMessage = newConvos.find(convo => {
             if (!convo.lastMessage || convo.lastMessage.senderId === user.id) {
@@ -258,7 +262,10 @@ const UserApp: React.FC = () => {
 
         if (convoWithNewMessage) {
             const isAlreadyActive = activeChatsRef.current.some(c => c.id === convoWithNewMessage.peer.id);
-            if (!isAlreadyActive) {
+            const isMobile = window.innerWidth < 768;
+
+            // Only auto-open if it's NOT the initial load and NOT on a mobile device.
+            if (!isAlreadyActive && !isFirstConversationLoad.current && !isMobile) {
                 handleOpenConversation(convoWithNewMessage.peer);
             }
         }
@@ -269,6 +276,11 @@ const UserApp: React.FC = () => {
                 previousLastMessageIdsRef.current.set(c.peer.id, c.lastMessage.id);
             }
         });
+
+        // Set this flag to false after the first execution.
+        if (isFirstConversationLoad.current) {
+            isFirstConversationLoad.current = false;
+        }
 
         const counts: Record<string, number> = {};
         newConvos.forEach(convo => {
