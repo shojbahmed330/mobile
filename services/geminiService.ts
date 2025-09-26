@@ -405,6 +405,7 @@ export const geminiService = {
     },
 
     // --- Rooms ---
+// @FIX: Added missing passthrough functions for Rooms features.
     listenToLiveAudioRooms: (callback: (rooms: LiveAudioRoom[]) => void) => firebaseService.listenToLiveAudioRooms(callback),
     listenToLiveVideoRooms: (callback: (rooms: LiveVideoRoom[]) => void) => firebaseService.listenToLiveVideoRooms(callback),
     listenToAudioRoom: (roomId: string, callback: (room: LiveAudioRoom | null) => void) => firebaseService.listenToRoom(roomId, 'audio', callback),
@@ -444,6 +445,7 @@ export const geminiService = {
     getSuggestedGroups: (userId: string) => firebaseService.getSuggestedGroups(userId),
     createGroup: (creator, name, description, coverPhotoUrl, privacy, requiresApproval, category) => firebaseService.createGroup(creator, name, description, coverPhotoUrl, privacy, requiresApproval, category),
     joinGroup: (userId, groupId, answers) => firebaseService.joinGroup(userId, groupId, answers),
+// @FIX: Added missing passthrough function for leaving a group.
     leaveGroup: (userId, groupId) => firebaseService.leaveGroup(userId, groupId),
     getPostsForGroup: (groupId) => firebaseService.getPostsForGroup(groupId),
     updateGroupSettings: (groupId, settings) => firebaseService.updateGroupSettings(groupId, settings),

@@ -56,8 +56,8 @@ const ReactionListModal: React.FC<ReactionListModalProps> = ({ isOpen, onClose, 
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in-fast" onClick={onClose}>
-      <div className="w-full max-w-md h-[60vh] bg-slate-800 border border-lime-500/20 rounded-xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
-        <header className="flex-shrink-0 p-4 border-b border-lime-500/20 flex items-center justify-center relative">
+      <div className="w-full max-w-md h-[60vh] bg-slate-800 border border-fuchsia-500/20 rounded-xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+        <header className="flex-shrink-0 p-4 border-b border-fuchsia-500/20 flex items-center justify-center relative">
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
             {reactionEntries.map(([emoji]) => (
               <button

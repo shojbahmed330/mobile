@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Icon from './Icon';
 import { User, ScrollState } from '../types';

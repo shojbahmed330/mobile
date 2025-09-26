@@ -596,6 +596,7 @@ const UserApp: React.FC = () => {
     setNotificationPanelOpen(false);
     
     switch(notification.type) {
+        case 'mention':
         case 'like':
         case 'comment':
             if (notification.post?.id) {
@@ -1114,7 +1115,11 @@ const UserApp: React.FC = () => {
                     <div className="relative" ref={notificationPanelRef}>
                         <button onClick={handleToggleNotifications} className="p-2 rounded-full text-fuchsia-400 hover:bg-slate-800 relative">
                             <Icon name="bell" className="w-6 h-6"/>
-                            {unreadNotificationCount > 0 && <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-900"></span>}
+                            {unreadNotificationCount > 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white border-2 border-slate-900">
+                                    {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                                </span>
+                            )}
                         </button>
                         {isNotificationPanelOpen && <NotificationPanel notifications={notifications} onClose={() => setNotificationPanelOpen(false)} onNotificationClick={handleNotificationClick} />}
                     </div>
@@ -1161,7 +1166,11 @@ const UserApp: React.FC = () => {
                     <div className="relative" ref={notificationPanelRef}>
                         <button onClick={handleToggleNotifications} className="p-2 rounded-full text-fuchsia-400 hover:bg-slate-800 relative">
                             <Icon name="bell" className="w-6 h-6"/>
-                             {unreadNotificationCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>}
+                            {unreadNotificationCount > 0 && (
+                                <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                                    {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                                </span>
+                            )}
                         </button>
                          {isNotificationPanelOpen && <NotificationPanel notifications={notifications} onClose={() => setNotificationPanelOpen(false)} onNotificationClick={handleNotificationClick} />}
                     </div>

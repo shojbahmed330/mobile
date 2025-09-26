@@ -261,9 +261,10 @@ export interface Lead {
 
 export interface Notification {
   id: string;
-  type: 'like' | 'comment' | 'friend_request' | 'friend_request_approved' | 'campaign_approved' | 'campaign_rejected' | 'admin_announcement' | 'admin_warning' | 'group_post' | 'group_join_request' | 'group_request_approved';
-  user: User;
+  type: 'like' | 'comment' | 'mention' | 'friend_request' | 'friend_request_approved' | 'campaign_approved' | 'campaign_rejected' | 'admin_announcement' | 'admin_warning' | 'group_post' | 'group_join_request' | 'group_request_approved';
+  user: User; // The user who initiated the action
   post?: { id: string; caption?: string };
+  comment?: { id: string; text?: string }; // For comment replies/mentions
   groupId?: string;
   groupName?: string;
   campaignName?: string;

@@ -32,6 +32,7 @@ const NotificationItem: React.FC<{ notification: Notification; onClick: () => vo
     switch (notification.type) {
       case 'like': return <Icon name="like" className="w-5 h-5 text-white fill-current" />;
       case 'comment': return <Icon name="comment" className="w-5 h-5 text-white" />;
+      case 'mention': return <Icon name="logo" className="w-5 h-5 text-white" />;
       case 'friend_request': return <Icon name="add-friend" className="w-5 h-5 text-white" />;
       case 'campaign_approved': return <Icon name="briefcase" className="w-5 h-5 text-white" />;
       case 'campaign_rejected': return <Icon name="briefcase" className="w-5 h-5 text-white" />;
@@ -48,6 +49,7 @@ const NotificationItem: React.FC<{ notification: Notification; onClick: () => vo
     switch (notification.type) {
         case 'like': return 'bg-rose-500';
         case 'comment': return 'bg-sky-500';
+        case 'mention': return 'bg-sky-500';
         case 'friend_request': return 'bg-green-500';
         case 'campaign_approved': return 'bg-green-500';
         case 'campaign_rejected': return 'bg-red-500';
@@ -66,6 +68,8 @@ const NotificationItem: React.FC<{ notification: Notification; onClick: () => vo
         return <><span className="font-bold">{notification.user.name}</span> liked your post.</>;
       case 'comment':
         return <><span className="font-bold">{notification.user.name}</span> commented on your post.</>;
+      case 'mention':
+        return <><span className="font-bold">{notification.user.name}</span> mentioned you in a {notification.comment ? 'comment' : 'post'}.</>;
       case 'friend_request':
         return <><span className="font-bold">{notification.user.name}</span> sent you a friend request.</>;
       case 'campaign_approved':
