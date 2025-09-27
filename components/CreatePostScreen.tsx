@@ -5,7 +5,6 @@ import Icon from './Icon';
 import { geminiService } from '../services/geminiService';
 import { firebaseService } from '../services/firebaseService';
 import { useSettings } from '../contexts/SettingsContext';
-import ImageCropper from './ImageCropper';
 import Waveform from './Waveform';
 
 interface CreatePostScreenProps {
@@ -32,23 +31,9 @@ const EMOJI_PICKER_LIST = [
   '😀', '😂', '😍', '❤️', '👍', '🙏', '😭', '😮', '🤔', '🥳', '😎', '😢', '😠', '🎉', '🔥'
 ];
 
-type SubView = 'main' | 'feelings'; // Removed 'audio'
+type SubView = 'main' | 'feelings'; 
 type Feeling = { emoji: string; text: string };
 
-const dataURLtoFile = (dataurl: string, filename: string): File | null => {
-    const arr = dataurl.split(',');
-    if (arr.length < 2) { return null; }
-    const mimeMatch = arr[0].match(/:(.*?);/);
-    if (!mimeMatch) { return null; }
-    const mime = mimeMatch[1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) {
-        u8arr[n] = bstr.charCodeAt(n);
-    }
-    return new File([u8arr], filename, { type: mime });
-}
 
 const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ currentUser, onPostCreated, onSetTtsMessage, lastCommand, onDeductCoinsForImage, onCommandProcessed, onGoBack, groupId, groupName, startRecording }) => {
     const [caption, setCaption] = useState('');
@@ -56,8 +41,7 @@ const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ currentUser, onPost
     const [subView, setSubView] = useState<SubView>('main');
     const [isPosting, setIsPosting] = useState(false);
     const [isEmojiPickerOpen, setEmojiPickerOpen] = useState(false);
-    
-    const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+    const [search, setSearch] = useState('');
 
     const [uploadedImageFile, setUploadedImageFile] = useState<File | null>(null);
     const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
@@ -168,26 +152,13 @@ const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ currentUser, onPost
         const file = e.target.files?.[0];
         if (file && file.type.startsWith('image/')) {
             handleDeleteAudio(); // Clear any existing audio recording
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setImageToCrop(reader.result as string);
-            };
-            reader.readAsDataURL(file);
+             if (uploadedImagePreview) {
+                URL.revokeObjectURL(uploadedImagePreview);
+            }
+            setUploadedImageFile(file);
+            setUploadedImagePreview(URL.createObjectURL(file));
         }
         e.target.value = '';
-    };
-
-    const handleSaveCrop = (croppedImageBase64: string) => {
-        setUploadedImagePreview(croppedImageBase64);
-        const croppedFile = dataURLtoFile(croppedImageBase64, 'cropped_image.jpeg');
-        if (croppedFile) {
-            setUploadedImageFile(croppedFile);
-        }
-        setImageToCrop(null);
-    };
-
-    const handleCancelCrop = () => {
-        setImageToCrop(null);
     };
 
     const handlePost = useCallback(async () => {
@@ -332,7 +303,6 @@ const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ currentUser, onPost
     );
     
     const renderFeelingsView = () => {
-         const [search, setSearch] = useState('');
          const filteredFeelings = FEELINGS.filter(f => f.text.toLowerCase().includes(search.toLowerCase()));
 
         return (
@@ -360,15 +330,6 @@ const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ currentUser, onPost
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in-fast" onClick={onGoBack}>
-             {imageToCrop && (
-                <ImageCropper
-                    imageUrl={imageToCrop}
-                    aspectRatio={16 / 9}
-                    onSave={handleSaveCrop}
-                    onCancel={handleCancelCrop}
-                    isUploading={isPosting}
-                />
-            )}
             <div onClick={e => e.stopPropagation()}>
                 {subView === 'feelings' ? renderFeelingsView() : (
                     <div className={`w-full max-w-lg bg-slate-800 rounded-lg shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto`}>
