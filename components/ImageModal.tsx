@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Post, User, Comment } from '../types';
 import Icon from './Icon';
@@ -22,9 +23,6 @@ interface ImageModalProps {
 const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
 
 const ImageModal: React.FC<ImageModalProps> = ({ post, currentUser, isLoading, onClose, onReactToPost, onReactToComment, onPostComment, onEditComment, onDeleteComment, onOpenProfile, onSharePost }) => {
-  // FIX: This is the most robust way to prevent the crash.
-  // If the post data is null, OR if the author field is missing (e.g. user was deleted),
-  // we render nothing. This completely avoids any attempt to access properties of a null object.
   if (!post || !post.author) {
     return null;
   }
@@ -135,11 +133,45 @@ const ImageModal: React.FC<ImageModalProps> = ({ post, currentUser, isLoading, o
     if (!post.reactions) return [];
     const counts: { [key: string]: number } = {};
     Object.values(post.reactions).forEach(emoji => {
-        // FIX: Cast `emoji` to `string` to use it as an index type, as Object.values can infer it as `unknown`.
         counts[emoji as string] = (counts[emoji as string] || 0) + 1;
     });
     return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(e => e[0]);
   }, [post.reactions]);
+
+  const CommentWithReplies: React.FC<{
+    comment: Comment & { replies: Comment[] };
+    isReply?: boolean;
+  }> = ({ comment, isReply = false }) => {
+      return (
+          <div className="flex flex-col gap-3">
+              <div>
+                  <CommentCard
+                      comment={comment}
+                      currentUser={currentUser}
+                      isPlaying={playingCommentId === comment.id}
+                      onPlayPause={() => handlePlayComment(comment)}
+                      onAuthorClick={onOpenProfile}
+                      onReply={setReplyingTo}
+                      onReact={(commentId, emoji) => onReactToComment(post.id, commentId, emoji)}
+                      onEdit={(commentId, newText) => onEditComment(post.id, commentId, newText)}
+                      onDelete={(commentId) => onDeleteComment(post.id, commentId)}
+                      isReply={isReply}
+                  />
+              </div>
+              {comment.replies && comment.replies.length > 0 && (
+                  <div className="ml-6 pl-4 border-l-2 border-slate-700 space-y-3">
+                      {comment.replies.map(reply => (
+                          <CommentWithReplies
+                              key={reply.id}
+                              comment={reply as Comment & { replies: Comment[] }}
+                              isReply={true}
+                          />
+                      ))}
+                  </div>
+              )}
+          </div>
+      );
+  };
 
   if (isLoading) {
     return (
@@ -158,7 +190,7 @@ const ImageModal: React.FC<ImageModalProps> = ({ post, currentUser, isLoading, o
   return (
     <>
     <div
-      className="fixed inset-0 bg-black/85 z-50 flex items-stretch"
+      className="fixed inset-0 bg-black/85 z-50 flex flex-col md:flex-row items-stretch"
       onClick={onClose}
     >
       <button
@@ -182,7 +214,7 @@ const ImageModal: React.FC<ImageModalProps> = ({ post, currentUser, isLoading, o
           />
       </main>
 
-      <aside className={`w-[380px] flex-shrink-0 bg-slate-900 border-l border-slate-700/50 flex flex-col transition-opacity ${isLoading ? 'opacity-50' : 'opacity-100'}`} onClick={(e) => e.stopPropagation()}>
+      <aside className={`w-full h-1/2 md:h-auto md:w-[380px] flex-shrink-0 bg-slate-900 border-t md:border-t-0 md:border-l border-slate-700/50 flex flex-col transition-opacity ${isLoading ? 'opacity-50' : 'opacity-100'}`} onClick={(e) => e.stopPropagation()}>
           <header className="p-4 border-b border-slate-700">
               <button onClick={() => onOpenProfile(post.author.username)} className="flex items-center gap-3 group">
                 <img src={post.author.avatarUrl} alt={post.author.name} className="w-12 h-12 rounded-full" />
@@ -237,53 +269,8 @@ const ImageModal: React.FC<ImageModalProps> = ({ post, currentUser, isLoading, o
           </div>
 
           <div className="flex-grow overflow-y-auto p-4 space-y-3">
-             {commentThreads.length > 0 ? commentThreads.filter(Boolean).map(comment => (
-                <div key={comment.id} className="flex flex-col gap-3">
-                    <CommentCard 
-                        comment={comment}
-                        currentUser={currentUser}
-                        isPlaying={playingCommentId === comment.id}
-                        onPlayPause={() => handlePlayComment(comment)}
-                        onAuthorClick={onOpenProfile}
-                        onReply={setReplyingTo}
-                        onReact={(commentId, emoji) => onReactToComment(post.id, commentId, emoji)}
-                        onEdit={(commentId, newText) => onEditComment(post.id, commentId, newText)}
-                        onDelete={(commentId) => onDeleteComment(post.id, commentId)}
-                    />
-                     {comment.replies.length > 0 && (
-                        <div className="ml-6 pl-4 border-l-2 border-slate-700 space-y-3">
-                            {comment.replies.filter(Boolean).map(reply => (
-                                <CommentCard 
-                                    key={reply.id}
-                                    comment={reply}
-                                    currentUser={currentUser}
-                                    isPlaying={playingCommentId === reply.id}
-                                    isReply={true}
-                                    onPlayPause={() => handlePlayComment(reply)}
-                                    onAuthorClick={onOpenProfile}
-                                    onReply={setReplyingTo}
-                                    onReact={(commentId, emoji) => onReactToComment(post.id, commentId, emoji)}
-                                    onEdit={(commentId, newText) => onEditComment(post.id, commentId, newText)}
-                                    onDelete={(commentId) => onDeleteComment(post.id, commentId)}
-                                />
-                            ))}
-                        </div>
-                    )}
-                    {replyingTo?.id === comment.id && (
-                        <div className="ml-10">
-                            <form onSubmit={handlePostCommentSubmit}>
-                                <input
-                                    ref={commentInputRef}
-                                    type="text"
-                                    value={newCommentText}
-                                    onChange={(e) => setNewCommentText(e.target.value)}
-                                    placeholder={`Replying to ${replyingTo.author.name}...`}
-                                    className="w-full bg-slate-700 border-slate-600 text-slate-100 rounded-full py-2 px-4 text-sm"
-                                />
-                            </form>
-                        </div>
-                    )}
-                </div>
+             {commentThreads.length > 0 ? commentThreads.map(comment => (
+                <CommentWithReplies key={comment.id} comment={comment} />
             )) : (
                 <p className="text-center text-slate-500 pt-8">No comments yet.</p>
             )}
@@ -299,7 +286,7 @@ const ImageModal: React.FC<ImageModalProps> = ({ post, currentUser, isLoading, o
                 <form onSubmit={handlePostCommentSubmit} className="flex items-center gap-2">
                     <img src={currentUser.avatarUrl} alt="Your avatar" className="w-9 h-9 rounded-full" />
                     <input
-                        ref={!replyingTo ? commentInputRef : null}
+                        ref={commentInputRef}
                         type="text"
                         value={newCommentText}
                         onChange={(e) => setNewCommentText(e.target.value)}
