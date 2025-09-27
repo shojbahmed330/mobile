@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Notification } from '../types';
 import Icon from './Icon';
 
@@ -10,38 +10,45 @@ interface NotificationPanelProps {
 }
 
 const TimeAgo: React.FC<{ date: string }> = ({ date: dateString }) => {
-    try {
-        const date = new Date(dateString);
-        // Check for invalid date, which could cause NaN and unexpected behavior
-        if (isNaN(date.getTime())) {
-            return <>a while ago</>;
+    const calculateTime = useCallback(() => {
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                return 'a while ago';
+            }
+
+            const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+
+            if (seconds < 5) return 'Just now';
+            let interval = seconds / 31536000; // year
+            if (interval > 1) return `${Math.floor(interval)}y`;
+            interval = seconds / 2592000; // month
+            if (interval > 1) return `${Math.floor(interval)}mo`;
+            interval = seconds / 86400; // day
+            if (interval > 1) return `${Math.floor(interval)}d`;
+            interval = seconds / 3600; // hour
+            if (interval > 1) return `${Math.floor(interval)}h`;
+            interval = seconds / 60; // minute
+            if (interval > 1) return `${Math.floor(interval)}m`;
+            return `${Math.floor(seconds)}s`;
+        } catch (e) {
+            console.error("Error parsing date for TimeAgo:", dateString, e);
+            return 'a while ago';
         }
+    }, [dateString]);
+    
+    const [relativeTime, setRelativeTime] = useState(calculateTime);
 
-        const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    useEffect(() => {
+        setRelativeTime(calculateTime()); // Recalculate when dateString changes
+        const timerId = setInterval(() => {
+            setRelativeTime(calculateTime());
+        }, 60000); // Update every minute
 
-        if (seconds < 5) return <>Just now</>;
-        
-        let interval = seconds / 31536000; // year
-        if (interval > 1) return <>{Math.floor(interval)}y</>;
-        
-        interval = seconds / 2592000; // month
-        if (interval > 1) return <>{Math.floor(interval)}mo</>;
-        
-        interval = seconds / 86400; // day
-        if (interval > 1) return <>{Math.floor(interval)}d</>;
-        
-        interval = seconds / 3600; // hour
-        if (interval > 1) return <>{Math.floor(interval)}h</>;
-        
-        interval = seconds / 60; // minute
-        if (interval > 1) return <>{Math.floor(interval)}m</>;
-        
-        return <>{Math.floor(seconds)}s</>;
+        return () => clearInterval(timerId);
+    }, [calculateTime]);
 
-    } catch (e) {
-        console.error("Error parsing date for TimeAgo:", dateString, e);
-        return <>a while ago</>;
-    }
+    return <>{relativeTime}</>;
 };
 
 const NotificationItem: React.FC<{ notification: Notification; onClick: () => void }> = ({ notification, onClick }) => {
@@ -145,11 +152,20 @@ const NotificationItem: React.FC<{ notification: Notification; onClick: () => vo
 
 const NotificationPanel: React.FC<NotificationPanelProps> = ({ notifications, onClose, onNotificationClick }) => {
   // Sort notifications to ensure the newest is always on top.
-  const sortedNotifications = [...notifications].sort((a, b) => {
-    // Add guards for potentially nullish items or createdAt properties
-    if (!a?.createdAt || !b?.createdAt) return 0;
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
+  const sortedNotifications = useMemo(() => {
+    // Create a mutable copy before sorting
+    return [...notifications].sort((a, b) => {
+        const timeA = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+        
+        // Handle cases where dates might be invalid
+        if (isNaN(timeA) || isNaN(timeB)) {
+            return 0;
+        }
+        
+        return timeB - timeA; // Sorts descending (newest first)
+    });
+  }, [notifications]);
 
   return (
     <div className="absolute top-full right-0 mt-2 w-80 sm:w-96 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl z-50 overflow-hidden animate-fade-in-fast">
