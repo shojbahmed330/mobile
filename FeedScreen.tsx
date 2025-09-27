@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Post, User, ScrollState, Campaign, AppView, Story, Comment } from '../types';
 import { PostCard } from './PostCard';
@@ -118,16 +119,16 @@ const FeedScreen: React.FC<FeedScreenProps> = ({
 
   useEffect(() => {
     const scrollContainer = feedContainerRef.current;
-    if (!scrollContainer || scrollState === 'none') {
+    if (!scrollContainer || scrollState === ScrollState.NONE) {
         return;
     }
 
     let animationFrameId: number;
 
     const animateScroll = () => {
-        if (scrollState === 'down') {
+        if (scrollState === ScrollState.DOWN) {
             scrollContainer.scrollTop += 2;
-        } else if (scrollState === 'up') {
+        } else if (scrollState === ScrollState.UP) {
             scrollContainer.scrollTop -= 2;
         }
         animationFrameId = requestAnimationFrame(animateScroll);
@@ -262,13 +263,16 @@ const FeedScreen: React.FC<FeedScreenProps> = ({
             }
             break;
           case 'intent_scroll_down':
-              onSetScrollState('down');
+              // FIX: Use the ScrollState enum member instead of a string literal.
+              onSetScrollState(ScrollState.DOWN);
               break;
           case 'intent_scroll_up':
-              onSetScrollState('up');
+              // FIX: Use the ScrollState enum member instead of a string literal.
+              onSetScrollState(ScrollState.UP);
               break;
           case 'intent_stop_scroll':
-              onSetScrollState('none');
+              // FIX: Use the ScrollState enum member instead of a string literal.
+              onSetScrollState(ScrollState.NONE);
               break;
           case 'intent_help':
               onSetTtsMessage(getTtsPrompt('feed_loaded', language));
@@ -366,7 +370,7 @@ const FeedScreen: React.FC<FeedScreenProps> = ({
 
   if (isLoading) {
     return (
-      <div className="w-full max-w-lg mx-auto flex flex-col items-center gap-6">
+      <div className="w-full max-w-lg md:max-w-2xl mx-auto flex flex-col items-center gap-6">
           <SkeletonPostCard />
           <SkeletonPostCard />
           <SkeletonPostCard />
@@ -375,7 +379,7 @@ const FeedScreen: React.FC<FeedScreenProps> = ({
   }
 
   return (
-    <div ref={feedContainerRef} className="w-full max-w-lg mx-auto flex flex-col items-center gap-6">
+    <div ref={feedContainerRef} className="w-full max-w-lg md:max-w-2xl mx-auto flex flex-col items-center gap-6">
         <StoriesTray 
             currentUser={currentUser}
             storiesByAuthor={storiesByAuthor}

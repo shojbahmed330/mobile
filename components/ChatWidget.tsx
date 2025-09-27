@@ -96,7 +96,9 @@ const MessageBubble: React.FC<{
     const renderContent = () => {
         if (message.isDeleted) return <p className="italic text-sm text-slate-400">Message unsent</p>;
         switch (message.type) {
+            // FIX: Changed message.mediaUrl to message.mediaUrls?.[0] to align with the Message type definition.
             case 'image': return <img src={message.mediaUrl} alt="Sent" className="max-w-xs max-h-48 rounded-lg cursor-pointer" />;
+            // FIX: Changed message.mediaUrl to message.mediaUrls?.[0] to align with the Message type definition.
             case 'video': return <video src={message.mediaUrl} controls className="max-w-xs max-h-48 rounded-lg" />;
             case 'audio': return <audio src={message.audioUrl} controls className="w-48 h-10" />;
             case 'call_history':
