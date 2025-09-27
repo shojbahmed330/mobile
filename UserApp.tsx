@@ -193,6 +193,7 @@ const UserApp: React.FC = () => {
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null); // To hold the active speech recognition instance
   const viewerPostUnsubscribe = useRef<(() => void) | null>(null);
+  const mainContentRef = useRef<HTMLDivElement>(null);
   const currentView = viewStack[viewStack.length - 1];
   const unreadNotificationCount = notifications.filter(n => !n.read).length;
 
@@ -207,6 +208,9 @@ const UserApp: React.FC = () => {
   const navigate = useCallback((view: AppView, props: any = {}) => {
     setNotificationPanelOpen(false);
     setProfileMenuOpen(false);
+    if (mainContentRef.current) {
+        mainContentRef.current.scrollTop = 0;
+    }
     setViewStack(stack => [...stack, { view, props }]);
   }, []);
 
@@ -1179,7 +1183,7 @@ const UserApp: React.FC = () => {
         )}
 
         <div className="flex-grow overflow-hidden relative">
-          <div className={`h-full w-full absolute inset-0 overflow-y-auto ${isFullScreenView ? '' : 'pb-32 md:pb-8'}`}>
+          <div ref={mainContentRef} className={`h-full w-full absolute inset-0 overflow-y-auto ${isFullScreenView ? '' : 'pb-32 md:pb-8'}`}>
             {renderView()}
           </div>
         </div>

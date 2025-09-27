@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Notification } from '../types';
 import Icon from './Icon';
@@ -71,6 +72,9 @@ const NotificationItem: React.FC<{ notification: Notification; onClick: () => vo
 
     switch (notification.type) {
       case 'like':
+        if (notification.comment?.id) {
+            return <><span className="font-bold">{notification.user.name}</span> reacted to your comment on {postPreview}.</>;
+        }
         return <><span className="font-bold">{notification.user.name}</span> liked {postPreview}.</>;
       case 'comment':
         return <><span className="font-bold">{notification.user.name}</span> commented on {postPreview}.</>;

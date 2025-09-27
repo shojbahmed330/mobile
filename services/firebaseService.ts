@@ -1,3 +1,4 @@
+
 // @ts-nocheck
 import {
     getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, addDoc, deleteDoc, onSnapshot,
@@ -835,23 +836,33 @@ export const firebaseService = {
 
     async reactToComment(postId: string, commentId: string, userId: string, newReaction: string): Promise<boolean> {
         const postRef = doc(db, 'posts', postId);
+        const currentUser = await this.getUserProfileById(userId);
+        if (!currentUser) return false;
+    
         try {
+            let commentAuthorId: string | null = null;
+            let postCaption: string = '';
+            let commentText: string = '';
+    
             await runTransaction(db, async (transaction) => {
                 const postDoc = await transaction.get(postRef);
                 if (!postDoc.exists()) throw "Post does not exist!";
     
                 const postData = postDoc.data() as Post;
+                postCaption = postData.caption || '';
                 const comments = postData.comments || [];
                 const commentIndex = comments.findIndex(c => c.id === commentId);
     
                 if (commentIndex === -1) throw "Comment not found!";
     
                 const comment = comments[commentIndex];
+                commentAuthorId = comment.author.id;
+                commentText = comment.text || `a ${comment.type} comment`;
                 const reactions = { ...(comment.reactions || {}) };
                 const userPreviousReaction = reactions[userId];
     
                 if (userPreviousReaction === newReaction) {
-                    delete reactions[userId];
+                    delete reactions[userId]; // un-react
                 } else {
                     reactions[userId] = newReaction;
                 }
@@ -860,6 +871,14 @@ export const firebaseService = {
     
                 transaction.update(postRef, { comments });
             });
+    
+            if (commentAuthorId) {
+                await _createNotification(commentAuthorId, 'like', currentUser, {
+                    post: { id: postId, caption: postCaption.substring(0, 50) },
+                    comment: { id: commentId, text: commentText.substring(0, 50) }
+                });
+            }
+    
             return true;
         } catch (e) {
             console.error("React to comment transaction failed:", e);
