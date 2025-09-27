@@ -11,17 +11,24 @@ interface NotificationPanelProps {
 
 const TimeAgo: React.FC<{ date: string }> = ({ date }) => {
     const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
-    let interval = seconds / 31536000;
-    if (interval > 1) return <>{Math.floor(interval)}y</>;
-    interval = seconds / 2592000;
-    if (interval > 1) return <>{Math.floor(interval)}m</>;
-    interval = seconds / 86400;
-    if (interval > 1) return <>{Math.floor(interval)}d</>;
-    interval = seconds / 3600;
-    if (interval > 1) return <>{Math.floor(interval)}h</>;
-    interval = seconds / 60;
-    if (interval > 1) return <>{Math.floor(interval)}min</>;
-    return <>{Math.floor(seconds)}s</>;
+    
+    if (seconds < 5) return <>Just now</>;
+    if (seconds < 60) return <>{seconds}s</>;
+
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return <>{minutes}m</>;
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return <>{hours}h</>;
+
+    const days = Math.floor(hours / 24);
+    if (days < 30) return <>{days}d</>;
+    
+    const months = Math.floor(days / 30);
+    if (months < 12) return <>{months}mo</>;
+
+    const years = Math.floor(days / 365);
+    return <>{years}y</>;
 };
 
 const NotificationItem: React.FC<{ notification: Notification; onClick: () => void }> = ({ notification, onClick }) => {
@@ -115,7 +122,7 @@ const NotificationItem: React.FC<{ notification: Notification; onClick: () => vo
         <div className="flex-grow">
             <p className="text-slate-200 text-sm leading-tight">{getText()}</p>
             <p className={`text-sm mt-1 ${notification.read ? 'text-slate-400' : 'text-rose-400 font-semibold'}`}>
-                <TimeAgo date={notification.createdAt} /> ago
+                <TimeAgo date={notification.createdAt} />
             </p>
         </div>
         {!notification.read && <div className="w-2 h-2 rounded-full bg-rose-500 self-center flex-shrink-0"></div>}
