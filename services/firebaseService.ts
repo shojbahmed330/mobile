@@ -1,4 +1,3 @@
-
 // @ts-nocheck
 import {
     getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, addDoc, deleteDoc, onSnapshot,
@@ -1858,7 +1857,7 @@ export const firebaseService = {
                 durationInSeconds = Math.round((end.getTime() - start.getTime()) / 1000);
             }
 
-            const historyMessage = {
+            const historyMessage: any = {
                 senderId: callDataBeforeUpdate.caller.id,
                 recipientId: callDataBeforeUpdate.callee.id,
                 type: 'call_history',
@@ -1866,8 +1865,11 @@ export const firebaseService = {
                 createdAt: serverTimestamp(),
                 callType: callDataBeforeUpdate.type,
                 callStatus: status,
-                callDuration: durationInSeconds > 0 ? durationInSeconds : undefined,
             };
+
+            if (durationInSeconds > 0) {
+                historyMessage.callDuration = durationInSeconds;
+            }
 
             const chatId = callDataBeforeUpdate.chatId;
             const chatRef = doc(db, 'chats', chatId);
