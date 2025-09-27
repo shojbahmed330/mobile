@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Post, User, ScrollState, Campaign, AppView, Story, Comment } from '../types';
 import { PostCard } from './PostCard';
@@ -34,7 +33,6 @@ interface FeedScreenProps {
   onSetScrollState: (state: ScrollState) => void;
   onNavigate: (view: AppView, props?: any) => void;
   friends: User[];
-  storyFeedKey: number;
   setSearchResults: (results: User[]) => void;
 }
 
@@ -42,7 +40,7 @@ const FeedScreen: React.FC<FeedScreenProps> = ({
     isLoading, posts: initialPosts, currentUser, onSetTtsMessage, lastCommand, onOpenProfile,
     onViewPost, onReactToPost, onStartCreatePost, onRewardedAdClick, onAdViewed,
     onAdClick, onCommandProcessed, scrollState, onSetScrollState, onNavigate, friends, setSearchResults,
-    onStartComment, onSharePost, onOpenPhotoViewer, storyFeedKey
+    onStartComment, onSharePost, onOpenPhotoViewer
 }) => {
   const [posts, setPosts] = useState<Post[]>(initialPosts);
   const [adInjected, setAdInjected] = useState(false);
@@ -100,7 +98,7 @@ const FeedScreen: React.FC<FeedScreenProps> = ({
         fetchRewardedCampaign();
         fetchStories();
     }
-  }, [isLoading, fetchRewardedCampaign, fetchStories, storyFeedKey]);
+  }, [isLoading, fetchRewardedCampaign, fetchStories]);
 
   useEffect(() => {
     const injectAd = async () => {
@@ -264,15 +262,15 @@ const FeedScreen: React.FC<FeedScreenProps> = ({
             }
             break;
           case 'intent_scroll_down':
-// @FIX: Use enum member ScrollState.DOWN to match type definition.
+              // FIX: Use the ScrollState enum member instead of a string literal.
               onSetScrollState(ScrollState.DOWN);
               break;
           case 'intent_scroll_up':
-// @FIX: Use enum member ScrollState.UP to match type definition.
+              // FIX: Use the ScrollState enum member instead of a string literal.
               onSetScrollState(ScrollState.UP);
               break;
           case 'intent_stop_scroll':
-// @FIX: Use enum member ScrollState.NONE to match type definition.
+              // FIX: Use the ScrollState enum member instead of a string literal.
               onSetScrollState(ScrollState.NONE);
               break;
           case 'intent_help':
@@ -380,7 +378,7 @@ const FeedScreen: React.FC<FeedScreenProps> = ({
   }
 
   return (
-    <div ref={feedContainerRef} className="w-full max-w-lg md:max-w-2xl mx-auto flex flex-col items-center gap-6 pt-4 md:pt-0">
+    <div ref={feedContainerRef} className="w-full max-w-lg md:max-w-2xl mx-auto flex flex-col items-center gap-6">
         <StoriesTray 
             currentUser={currentUser}
             storiesByAuthor={storiesByAuthor}

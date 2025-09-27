@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AppView, LiveAudioRoom, User } from '../types';
 import { geminiService } from '../services/geminiService';
@@ -17,10 +16,12 @@ const CreateRoomModal: React.FC<{
     const [isCreating, setIsCreating] = useState(false);
 
     const handleCreate = async () => {
-        if (!topic.trim()) return;
+        if (!topic.trim() || isCreating) return;
         setIsCreating(true);
         await onCreate(topic);
-        // The parent will handle closing the modal after navigation
+        // This line is reached if the onCreate promise fails to navigate
+        // (e.g., user denies microphone permission), resetting the button state.
+        setIsCreating(false);
     };
 
     return (
@@ -68,6 +69,21 @@ const RoomsListScreen: React.FC<RoomsListScreenProps> = ({ currentUser, onNaviga
   };
 
   const handleCreateRoom = async (topic: string) => {
+    // Request microphone permission before any async database operation.
+    // This is crucial for mobile browsers that require a direct user gesture.
+    let stream;
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Immediately stop the tracks. We only needed to prompt for permission.
+        // The LiveRoomScreen will handle its own stream.
+        stream.getTracks().forEach(track => track.stop());
+    } catch (err) {
+        console.error("Mic permission error on room creation:", err);
+        // Inform the user. They might have blocked permissions.
+        alert("Microphone access is required to create a room. Please check your browser settings.");
+        return; // Stop the creation process
+    }
+
     const newRoom = await geminiService.createLiveAudioRoom(currentUser, topic);
     if (newRoom) {
       setCreateModalOpen(false);

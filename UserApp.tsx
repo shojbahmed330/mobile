@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+// FIX: ScrollState enum needs to be used for state initialization and updates.
 import { AppView, User, VoiceState, Post, Comment, ScrollState, Notification, Campaign, Group, Story, Conversation, Call } from './types';
 import AuthScreen from './components/AuthScreen';
 import FeedScreen from './components/FeedScreen';
@@ -160,7 +161,7 @@ const UserApp: React.FC = () => {
   const [voiceState, setVoiceState] = useState<VoiceState>(VoiceState.IDLE);
   const [ttsMessage, setTtsMessage] = useState<string>('Say a command...');
   const [lastCommand, setLastCommand] = useState<string | null>(null);
-  // @FIX: Use enum member ScrollState.NONE for initial state to match type definition.
+  // FIX: Initialize scrollState with the enum member instead of a string literal.
   const [scrollState, setScrollState] = useState<ScrollState>(ScrollState.NONE);
   const [headerSearchQuery, setHeaderSearchQuery] = useState('');
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
@@ -173,7 +174,6 @@ const UserApp: React.FC = () => {
   const [leadFormPost, setLeadFormPost] = useState<Post | null>(null);
   const [viewerPost, setViewerPost] = useState<Post | null>(null);
   const [isLoadingViewerPost, setIsLoadingViewerPost] = useState(false);
-  const [storyFeedKey, setStoryFeedKey] = useState(0); // Add state to trigger story refetch
   const { language } = useSettings();
 
   const [activeChats, setActiveChats] = useState<User[]>([]);
@@ -500,7 +500,7 @@ const UserApp: React.FC = () => {
 
   const handleCommand = useCallback((command: string) => {
     setVoiceState(VoiceState.PROCESSING);
-    // @FIX: Use enum member ScrollState.NONE to match type definition.
+    // FIX: Use the ScrollState enum member for state updates.
     setScrollState(ScrollState.NONE);
     setLastCommand(command);
     setCommandInputValue('');
@@ -762,7 +762,6 @@ const UserApp: React.FC = () => {
 
   const handleStoryCreated = (newStory: Story) => {
     goBack();
-    setStoryFeedKey(k => k + 1); // Trigger a refetch in FeedScreen
     setTtsMessage(getTtsPrompt('story_created', language));
   }
   
@@ -990,7 +989,7 @@ const UserApp: React.FC = () => {
             initialAuthError={globalAuthError}
         />;
       case AppView.FEED:
-        return <FeedScreen {...commonScreenProps} storyFeedKey={storyFeedKey} posts={posts} isLoading={isLoadingFeed} onReactToPost={handleReactToPost} onStartCreatePost={handleStartCreatePost} onRewardedAdClick={handleRewardedAdClick} onAdClick={handleAdClick} onAdViewed={handleAdViewed} onViewPost={handleViewPost} friends={friends} setSearchResults={setSearchResults} />;
+        return <FeedScreen {...commonScreenProps} posts={posts} isLoading={isLoadingFeed} onReactToPost={handleReactToPost} onStartCreatePost={handleStartCreatePost} onRewardedAdClick={handleRewardedAdClick} onAdClick={handleAdClick} onAdViewed={handleAdViewed} onViewPost={handleViewPost} friends={friends} setSearchResults={setSearchResults} />;
       case AppView.EXPLORE:
         return <ExploreScreen {...commonScreenProps} onReactToPost={handleReactToPost} onViewPost={handleViewPost} />;
       case AppView.REELS:
@@ -1050,7 +1049,7 @@ const UserApp: React.FC = () => {
       case AppView.MOBILE_MENU:
         return <MobileMenuScreen currentUser={user} onNavigate={navigate} onLogout={handleLogout} friendRequestCount={friendRequestCount} />;
       default:
-        return <FeedScreen {...commonScreenProps} storyFeedKey={storyFeedKey} posts={posts} isLoading={isLoadingFeed} onReactToPost={handleReactToPost} onStartCreatePost={handleStartCreatePost} onRewardedAdClick={handleRewardedAdClick} onAdClick={handleAdClick} onAdViewed={handleAdViewed} onViewPost={handleViewPost} friends={friends} setSearchResults={setSearchResults} />;
+        return <FeedScreen {...commonScreenProps} posts={posts} isLoading={isLoadingFeed} onReactToPost={handleReactToPost} onStartCreatePost={handleStartCreatePost} onRewardedAdClick={handleRewardedAdClick} onAdClick={handleAdClick} onAdViewed={handleAdViewed} onViewPost={handleViewPost} friends={friends} setSearchResults={setSearchResults} />;
     }
   };
   

@@ -106,7 +106,7 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
         );
     }
     
-    // @FIX: Cast `arr` to `any[]` to access the `length` property, as Object.values infers the value as `unknown`.
+    // FIX: Cast `arr` to `any[]` to access the `length` property, as Object.values infers the value as `unknown`.
     const isEmpty = !categorizedFeed || Object.values(categorizedFeed).every(arr => (arr as any[]).length === 0);
 
     if (isEmpty) {

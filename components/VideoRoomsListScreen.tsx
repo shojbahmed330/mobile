@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AppView, LiveVideoRoom, User } from '../types';
 import { geminiService } from '../services/geminiService';
@@ -14,9 +13,12 @@ const CreateVideoRoomModal: React.FC<CreateRoomModalProps> = ({ onClose, onCreat
     const [isCreating, setIsCreating] = useState(false);
 
     const handleCreate = async () => {
-        if (!topic.trim()) return;
+        if (!topic.trim() || isCreating) return;
         setIsCreating(true);
         await onCreate(topic);
+        // This line is reached if the onCreate promise fails to navigate
+        // (e.g., user denies permissions), resetting the button state.
+        setIsCreating(false);
     };
 
     return (
@@ -63,6 +65,18 @@ const VideoRoomsListScreen: React.FC<{ currentUser: User; onNavigate: (view: App
   };
 
   const handleCreateRoom = async (topic: string) => {
+    // Request permissions before any async database operation.
+    let stream;
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        // Immediately stop the tracks.
+        stream.getTracks().forEach(track => track.stop());
+    } catch (err) {
+        console.error("Mic/Cam permission error on room creation:", err);
+        alert("Microphone and Camera access are required to create a video room. Please check your browser settings.");
+        return; // Stop the creation process
+    }
+
     const newRoom = await geminiService.createLiveVideoRoom(currentUser, topic);
     if (newRoom) {
       setCreateModalOpen(false);
