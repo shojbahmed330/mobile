@@ -1905,7 +1905,80 @@ export const firebaseService = {
     trackAdClick: async (campaignId) => updateDoc(doc(db, 'campaigns', campaignId), { clicks: increment(1) }),
     submitLead: async (leadData) => addDoc(collection(db, 'leads'), { ...leadData, createdAt: serverTimestamp() }),
     getLeadsForCampaign: async (campaignId) => [],
-    getStories: async (currentUserId) => [],
+    async getStories(currentUserId: string): Promise<{ author: User; stories: Story[]; allViewed: boolean }[]> {
+        const userDoc = await getDoc(doc(db, 'users', currentUserId));
+        if (!userDoc.exists()) return [];
+    
+        const currentUser = docToUser(userDoc);
+        const friendIds = currentUser.friendIds || [];
+        const userIdsToFetch = [currentUserId, ...friendIds];
+    
+        if (userIdsToFetch.length === 0) return [];
+        
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        
+        const storiesRef = collection(db, 'stories');
+        const storiesByAuthor = new Map<string, { author: Author, stories: Story[] }>();
+    
+        // Firestore 'in' query is limited to 30 elements. Chunk the query.
+        const chunks = [];
+        for (let i = 0; i < userIdsToFetch.length; i += 30) {
+            chunks.push(userIdsToFetch.slice(i, i + 30));
+        }
+    
+        const queryPromises = chunks.map(chunk => {
+            const q = query(
+                storiesRef,
+                where('author.id', 'in', chunk),
+                where('createdAt', '>=', twentyFourHoursAgo),
+                orderBy('createdAt', 'desc')
+            );
+            return getDocs(q);
+        });
+    
+        const querySnapshots = await Promise.all(queryPromises);
+        
+        for (const snapshot of querySnapshots) {
+            for (const storyDoc of snapshot.docs) {
+                const data = storyDoc.data();
+                const story = { 
+                    id: storyDoc.id, 
+                    ...data,
+                    createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
+                } as Story;
+    
+                // Filter out private stories from friends (double check)
+                if (story.privacy === 'friends' && story.author.id !== currentUserId && !friendIds.includes(story.author.id)) {
+                    continue;
+                }
+    
+                const authorId = story.author.id;
+                if (!storiesByAuthor.has(authorId)) {
+                    storiesByAuthor.set(authorId, { author: story.author, stories: [] });
+                }
+                storiesByAuthor.get(authorId)!.stories.push(story);
+            }
+        }
+    
+        // Format the output
+        const result = Array.from(storiesByAuthor.values()).map(group => {
+            const allViewed = group.stories.every(story => story.viewedBy && story.viewedBy.includes(currentUserId));
+            // Sort stories within each group from oldest to newest for viewing order
+            group.stories.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+            return { ...group, allViewed, author: group.author as User }; // Cast author to User
+        });
+    
+        // Sort author groups: current user first, then others by most recent story
+        result.sort((a, b) => {
+            if (a.author.id === currentUserId) return -1;
+            if (b.author.id === currentUserId) return 1;
+            const lastStoryA = a.stories[a.stories.length - 1]?.createdAt || '';
+            const lastStoryB = b.stories[b.stories.length - 1]?.createdAt || '';
+            return new Date(lastStoryB).getTime() - new Date(lastStoryA).getTime();
+        });
+    
+        return result;
+    },
     markStoryAsViewed: async (storyId, userId) => updateDoc(doc(db, 'stories', storyId), { viewedBy: arrayUnion(userId) }),
     async createStory(storyData: Omit<Story, 'id' | 'createdAt' | 'duration' | 'viewedBy' | 'contentUrl'>, mediaFile: File | null): Promise<Story | null> {
         try {
