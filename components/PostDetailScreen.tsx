@@ -176,6 +176,41 @@ const PostDetailScreen: React.FC<PostDetailScreenProps> = ({ postId, newlyAddedC
     }
   };
 
+  const CommentWithReplies: React.FC<{
+    comment: Comment & { replies: Comment[] };
+    isReply?: boolean;
+  }> = ({ comment, isReply = false }) => {
+      return (
+          <div className="flex flex-col gap-3">
+              <div ref={comment.id === newlyAddedCommentId ? newCommentRef : null}>
+                  <CommentCard
+                      comment={comment}
+                      currentUser={currentUser}
+                      isPlaying={playingCommentId === comment.id}
+                      onPlayPause={() => handlePlayComment(comment)}
+                      onAuthorClick={onOpenProfile}
+                      onReply={setReplyingTo}
+                      onReact={(commentId, emoji) => onReactToComment(post.id, commentId, emoji)}
+                      onEdit={(commentId, newText) => onEditComment(post.id, commentId, newText)}
+                      onDelete={(commentId) => onDeleteComment(post.id, commentId)}
+                      isReply={isReply}
+                  />
+              </div>
+              {comment.replies && comment.replies.length > 0 && (
+                  <div className="ml-6 pl-4 border-l-2 border-slate-700 space-y-3">
+                      {comment.replies.map(reply => (
+                          <CommentWithReplies
+                              key={reply.id}
+                              comment={reply as Comment & { replies: Comment[] }}
+                              isReply={true}
+                          />
+                      ))}
+                  </div>
+              )}
+          </div>
+      );
+  };
+
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-full"><p className="text-slate-300 text-xl">Loading post...</p></div>;
@@ -205,57 +240,8 @@ const PostDetailScreen: React.FC<PostDetailScreenProps> = ({ postId, newlyAddedC
         <div className="bg-slate-800/50 rounded-xl p-4">
              <h3 className="text-lg font-bold text-slate-200 mb-4">Comments ({post.commentCount})</h3>
              <div className="flex flex-col gap-4">
-                {commentThreads.length > 0 ? commentThreads.filter(Boolean).map(comment => (
-                    <div key={comment.id} className="flex flex-col gap-3">
-                        <div ref={comment.id === newlyAddedCommentId ? newCommentRef : null}>
-                            <CommentCard 
-                                comment={comment}
-                                currentUser={currentUser}
-                                isPlaying={playingCommentId === comment.id}
-                                onPlayPause={() => handlePlayComment(comment)}
-                                onAuthorClick={onOpenProfile}
-                                onReply={setReplyingTo}
-                                onReact={(commentId, emoji) => onReactToComment(post.id, commentId, emoji)}
-                                onEdit={(commentId, newText) => onEditComment(post.id, commentId, newText)}
-                                onDelete={(commentId) => onDeleteComment(post.id, commentId)}
-                            />
-                        </div>
-                        {comment.replies.length > 0 && (
-                            <div className="ml-6 pl-4 border-l-2 border-slate-700 space-y-3">
-                                {comment.replies.filter(Boolean).map(reply => (
-                                     <div key={reply.id} ref={reply.id === newlyAddedCommentId ? newCommentRef : null}>
-                                        <CommentCard 
-                                            comment={reply}
-                                            currentUser={currentUser}
-                                            isPlaying={playingCommentId === reply.id}
-                                            isReply={true}
-                                            onPlayPause={() => handlePlayComment(reply)}
-                                            onAuthorClick={onOpenProfile}
-                                            onReply={setReplyingTo}
-                                            onReact={(commentId, emoji) => onReactToComment(post.id, commentId, emoji)}
-                                            onEdit={(commentId, newText) => onEditComment(post.id, commentId, newText)}
-                                            onDelete={(commentId) => onDeleteComment(post.id, commentId)}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                         {replyingTo?.id === comment.id && (
-                             <div className="ml-10">
-                                <form onSubmit={handlePostCommentSubmit} className="flex items-center gap-2">
-                                    <img src={currentUser.avatarUrl} alt="Your avatar" className="w-8 h-8 rounded-full" />
-                                    <input
-                                        ref={commentInputRef}
-                                        type="text"
-                                        value={newCommentText}
-                                        onChange={(e) => setNewCommentText(e.target.value)}
-                                        placeholder={`Replying to ${replyingTo.author.name}...`}
-                                        className="flex-grow bg-slate-700 border-slate-600 text-slate-100 rounded-full py-2 px-4 text-sm"
-                                    />
-                                </form>
-                            </div>
-                         )}
-                    </div>
+                {commentThreads.length > 0 ? commentThreads.map(comment => (
+                    <CommentWithReplies key={comment.id} comment={comment} />
                 )) : (
                     <p className="text-slate-400 text-center py-4">Be the first to comment.</p>
                 )}
