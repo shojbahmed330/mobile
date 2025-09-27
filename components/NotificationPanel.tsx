@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Notification } from '../types';
 import Icon from './Icon';
@@ -9,42 +8,47 @@ interface NotificationPanelProps {
   onNotificationClick: (notification: Notification) => void;
 }
 
-const TimeAgo: React.FC<{ date: string }> = ({ date: dateString }) => {
+// Re-engineered TimeAgo component to be stateful and robust.
+// It ensures each notification timestamp is calculated and updated independently.
+const TimeAgo: React.FC<{ date: string | any }> = ({ date }) => {
     const calculateTime = useCallback(() => {
         try {
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) {
-                return 'a while ago';
+            // Defensively handle `date` which could be an ISO string or a Firestore Timestamp object.
+            const dateObj = new Date(date.toDate ? date.toDate() : date);
+            
+            if (isNaN(dateObj.getTime())) {
+                return '...'; // Handle invalid date gracefully
             }
 
-            const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+            const seconds = Math.floor((Date.now() - dateObj.getTime()) / 1000);
 
             if (seconds < 5) return 'Just now';
-            let interval = seconds / 31536000; // year
-            if (interval > 1) return `${Math.floor(interval)}y`;
-            interval = seconds / 2592000; // month
-            if (interval > 1) return `${Math.floor(interval)}mo`;
-            interval = seconds / 86400; // day
-            if (interval > 1) return `${Math.floor(interval)}d`;
-            interval = seconds / 3600; // hour
-            if (interval > 1) return `${Math.floor(interval)}h`;
-            interval = seconds / 60; // minute
-            if (interval > 1) return `${Math.floor(interval)}m`;
-            return `${Math.floor(seconds)}s`;
+            if (seconds < 60) return `${seconds}s`;
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes}m`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}h`;
+            const days = Math.floor(hours / 24);
+            if (days < 30) return `${days}d`;
+            const months = Math.floor(days / 30);
+            if (months < 12) return `${months}mo`;
+            const years = Math.floor(days / 365);
+            return `${years}y`;
         } catch (e) {
-            console.error("Error parsing date for TimeAgo:", dateString, e);
-            return 'a while ago';
+            console.error("TimeAgo Error:", e);
+            return '...';
         }
-    }, [dateString]);
+    }, [date]);
     
     const [relativeTime, setRelativeTime] = useState(calculateTime);
 
     useEffect(() => {
-        setRelativeTime(calculateTime()); // Recalculate when dateString changes
+        // Set up an interval to update the time every minute.
         const timerId = setInterval(() => {
             setRelativeTime(calculateTime());
-        }, 60000); // Update every minute
+        }, 60000);
 
+        // Cleanup the interval when the component unmounts or the date changes.
         return () => clearInterval(timerId);
     }, [calculateTime]);
 
@@ -151,18 +155,25 @@ const NotificationItem: React.FC<{ notification: Notification; onClick: () => vo
 };
 
 const NotificationPanel: React.FC<NotificationPanelProps> = ({ notifications, onClose, onNotificationClick }) => {
-  // Sort notifications to ensure the newest is always on top.
+  // Overhauled sorting logic to be more robust and performant.
   const sortedNotifications = useMemo(() => {
-    // Create a mutable copy before sorting
-    return [...notifications].sort((a, b) => {
-        const timeA = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const timeB = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
-        
-        // Handle cases where dates might be invalid
-        if (isNaN(timeA) || isNaN(timeB)) {
+    const getNumericTimestamp = (dateValue: string | any): number => {
+        if (!dateValue) return 0;
+        try {
+            // Defensively handle both ISO strings and potential Firestore Timestamp objects
+            const date = new Date(dateValue.toDate ? dateValue.toDate() : dateValue);
+            return isNaN(date.getTime()) ? 0 : date.getTime();
+        } catch {
             return 0;
         }
-        
+    };
+    
+    // Create a mutable copy, filter out any invalid entries, and sort.
+    return [...notifications]
+      .filter(Boolean)
+      .sort((a, b) => {
+        const timeB = getNumericTimestamp(b.createdAt);
+        const timeA = getNumericTimestamp(a.createdAt);
         return timeB - timeA; // Sorts descending (newest first)
     });
   }, [notifications]);
@@ -171,17 +182,15 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ notifications, on
     <div className="absolute top-full right-0 mt-2 w-80 sm:w-96 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl z-50 overflow-hidden animate-fade-in-fast">
       <div className="p-3 border-b border-slate-700 flex justify-between items-center">
         <h3 className="font-bold text-lg text-slate-100">Notifications</h3>
-        {/* Future: Add a "Mark all as read" button */}
       </div>
       <div className="max-h-96 overflow-y-auto divide-y divide-slate-700/50">
         {sortedNotifications.length > 0 ? (
-          sortedNotifications.filter(Boolean).map(n => <NotificationItem key={n.id} notification={n} onClick={() => onNotificationClick(n)} />)
+          sortedNotifications.map(n => <NotificationItem key={n.id} notification={n} onClick={() => onNotificationClick(n)} />)
         ) : (
           <p className="p-8 text-center text-slate-400">You have no notifications yet.</p>
         )}
       </div>
        <div className="p-2 bg-slate-900/50 text-center">
-            {/* Could have a "View all notifications" link here */}
       </div>
     </div>
   );
