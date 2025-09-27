@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Post, User, ScrollState, Campaign, AppView, Story, Comment } from '../types';
 import { PostCard } from './PostCard';
@@ -32,6 +33,7 @@ interface FeedScreenProps {
   onSetScrollState: (state: ScrollState) => void;
   onNavigate: (view: AppView, props?: any) => void;
   friends: User[];
+  storyFeedKey: number;
   setSearchResults: (results: User[]) => void;
 }
 
@@ -39,7 +41,7 @@ const FeedScreen: React.FC<FeedScreenProps> = ({
     isLoading, posts: initialPosts, currentUser, onSetTtsMessage, lastCommand, onOpenProfile,
     onViewPost, onReactToPost, onStartCreatePost, onRewardedAdClick, onAdViewed,
     onAdClick, onCommandProcessed, scrollState, onSetScrollState, onNavigate, friends, setSearchResults,
-    onStartComment, onSharePost, onOpenPhotoViewer
+    onStartComment, onSharePost, onOpenPhotoViewer, storyFeedKey
 }) => {
   const [posts, setPosts] = useState<Post[]>(initialPosts);
   const [adInjected, setAdInjected] = useState(false);
@@ -97,7 +99,7 @@ const FeedScreen: React.FC<FeedScreenProps> = ({
         fetchRewardedCampaign();
         fetchStories();
     }
-  }, [isLoading, fetchRewardedCampaign, fetchStories]);
+  }, [isLoading, fetchRewardedCampaign, fetchStories, storyFeedKey]);
 
   useEffect(() => {
     const injectAd = async () => {
