@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Post, User, ScrollState, Campaign, AppView, Story, Comment } from '../types';
 import { PostCard } from './PostCard';
@@ -263,13 +264,16 @@ const FeedScreen: React.FC<FeedScreenProps> = ({
             }
             break;
           case 'intent_scroll_down':
-              onSetScrollState('down');
+// @FIX: Use enum member ScrollState.DOWN to match type definition.
+              onSetScrollState(ScrollState.DOWN);
               break;
           case 'intent_scroll_up':
-              onSetScrollState('up');
+// @FIX: Use enum member ScrollState.UP to match type definition.
+              onSetScrollState(ScrollState.UP);
               break;
           case 'intent_stop_scroll':
-              onSetScrollState('none');
+// @FIX: Use enum member ScrollState.NONE to match type definition.
+              onSetScrollState(ScrollState.NONE);
               break;
           case 'intent_help':
               onSetTtsMessage(getTtsPrompt('feed_loaded', language));
@@ -376,7 +380,7 @@ const FeedScreen: React.FC<FeedScreenProps> = ({
   }
 
   return (
-    <div ref={feedContainerRef} className="w-full max-w-lg md:max-w-2xl mx-auto flex flex-col items-center gap-6">
+    <div ref={feedContainerRef} className="w-full max-w-lg md:max-w-2xl mx-auto flex flex-col items-center gap-6 pt-4 md:pt-0">
         <StoriesTray 
             currentUser={currentUser}
             storiesByAuthor={storiesByAuthor}

@@ -233,7 +233,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       event.target.value = ''; 
   };
   
-// FIX: The `onSave` prop for `ImageCropper` expects a function with one argument `(base64: string)`.
+// @FIX: The `onSave` prop for `ImageCropper` expects a function with one argument `(base64: string)`.
 // The original `handleSaveCrop` expected a `caption` and `captionStyle`, causing a type mismatch.
 // This has been updated to only accept `base64Url` and pass undefined for the optional caption.
   const handleSaveCrop = async (base64Url: string) => {

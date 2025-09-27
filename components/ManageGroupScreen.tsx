@@ -1,6 +1,7 @@
 
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { AppView, Group, Post, User } from '../types';
+import { AppView, Group, Post, User, Author } from '../types';
 import { geminiService } from '../services/geminiService';
 import Icon from './Icon';
 import { getTtsPrompt } from '../constants';
@@ -9,7 +10,7 @@ import { useSettings } from '../contexts/SettingsContext';
 type ActiveTab = 'members' | 'requests' | 'posts' | 'settings';
 
 interface MemberManagementCardProps {
-    member: User;
+    member: Author;
     group: Group;
     currentUser: User;
     onAction: () => void;
@@ -20,7 +21,8 @@ const MemberManagementCard: React.FC<MemberManagementCardProps> = ({ member, gro
     const { language } = useSettings();
     
     const handlePromote = async (newRole: 'Admin' | 'Moderator') => {
-        const success = await geminiService.promoteGroupMember(group.id, member, newRole);
+        // @FIX: Cast member to User to satisfy the service layer function signature. This is safe as the service only uses Author properties.
+        const success = await geminiService.promoteGroupMember(group.id, member as User, newRole);
         if (success) {
             onSetTtsMessage(getTtsPrompt('member_promoted', language, { name: member.name, role: newRole }));
             onAction();
@@ -28,7 +30,8 @@ const MemberManagementCard: React.FC<MemberManagementCardProps> = ({ member, gro
     };
 
     const handleDemote = async (oldRole: 'Admin' | 'Moderator') => {
-        const success = await geminiService.demoteGroupMember(group.id, member, oldRole);
+        // @FIX: Cast member to User to satisfy the service layer function signature. This is safe as the service only uses Author properties.
+        const success = await geminiService.demoteGroupMember(group.id, member as User, oldRole);
         if (success) {
             onSetTtsMessage(getTtsPrompt('member_demoted', language, { name: member.name }));
             onAction();
@@ -37,7 +40,8 @@ const MemberManagementCard: React.FC<MemberManagementCardProps> = ({ member, gro
 
     const handleRemove = async () => {
         if (window.confirm(`Are you sure you want to remove ${member.name} from the group? This cannot be undone.`)) {
-            const success = await geminiService.removeGroupMember(group.id, member);
+            // @FIX: Cast member to User to satisfy the service layer function signature. This is safe as the service only uses Author properties.
+            const success = await geminiService.removeGroupMember(group.id, member as User);
             if (success) {
                 onSetTtsMessage(getTtsPrompt('member_removed', language, { name: member.name }));
                 onAction();

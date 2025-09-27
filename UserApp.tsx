@@ -160,7 +160,8 @@ const UserApp: React.FC = () => {
   const [voiceState, setVoiceState] = useState<VoiceState>(VoiceState.IDLE);
   const [ttsMessage, setTtsMessage] = useState<string>('Say a command...');
   const [lastCommand, setLastCommand] = useState<string | null>(null);
-  const [scrollState, setScrollState] = useState<ScrollState>('none');
+  // @FIX: Use enum member ScrollState.NONE for initial state to match type definition.
+  const [scrollState, setScrollState] = useState<ScrollState>(ScrollState.NONE);
   const [headerSearchQuery, setHeaderSearchQuery] = useState('');
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
   const [isLoadingReels, setIsLoadingReels] = useState(true);
@@ -499,7 +500,8 @@ const UserApp: React.FC = () => {
 
   const handleCommand = useCallback((command: string) => {
     setVoiceState(VoiceState.PROCESSING);
-    setScrollState('none');
+    // @FIX: Use enum member ScrollState.NONE to match type definition.
+    setScrollState(ScrollState.NONE);
     setLastCommand(command);
     setCommandInputValue('');
   }, []);

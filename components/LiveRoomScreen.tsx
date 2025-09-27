@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { AppView, LiveAudioRoom, User, LiveAudioRoomMessage } from '../types';
+import { AppView, LiveAudioRoom, User, LiveAudioRoomMessage, Author } from '../types';
 import { geminiService } from '../services/geminiService';
 import Icon from './Icon';
 import { AGORA_APP_ID } from '../constants';
@@ -44,7 +44,8 @@ interface LiveRoomScreenProps {
   onSetTtsMessage: (message: string) => void;
 }
 
-const Avatar: React.FC<{ user: User; isHost?: boolean; isSpeaking?: boolean; children?: React.ReactNode }> = ({ user, isHost, isSpeaking, children }) => (
+// @FIX: Changed prop type from 'User' to 'Author' to correctly handle the data shape from the room object.
+const Avatar: React.FC<{ user: Author; isHost?: boolean; isSpeaking?: boolean; children?: React.ReactNode }> = ({ user, isHost, isSpeaking, children }) => (
     <div className="relative flex flex-col items-center gap-2 text-center w-24">
         <div className="relative">
             <img 

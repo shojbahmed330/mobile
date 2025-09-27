@@ -40,7 +40,7 @@ const REACTION_COLORS: { [key: string]: string } = {
 };
 
 export const PostCard: React.FC<PostCardProps> = ({ post, currentUser, isActive, isPlaying, onPlayPause, onReact, onViewPost, onAuthorClick, onStartComment, onSharePost, onAdClick, onDeletePost, onOpenPhotoViewer, groupRole, isGroupAdmin, isPinned, onPinPost, onUnpinPost, onVote }) => {
-  // FINAL FIX: Add a guard clause for the post and its author.
+  // @FIX: Add a guard clause for the post and its author to prevent crashes with malformed data.
   if (!post || !post.author) {
     return null;
   }
