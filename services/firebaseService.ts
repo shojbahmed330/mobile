@@ -1907,7 +1907,52 @@ export const firebaseService = {
     getLeadsForCampaign: async (campaignId) => [],
     getStories: async (currentUserId) => [],
     markStoryAsViewed: async (storyId, userId) => updateDoc(doc(db, 'stories', storyId), { viewedBy: arrayUnion(userId) }),
-    createStory: async (storyData, mediaFile) => ({...storyData, id: '', createdAt: new Date().toISOString(), duration: 5, viewedBy: []}),
+    async createStory(storyData: Omit<Story, 'id' | 'createdAt' | 'duration' | 'viewedBy' | 'contentUrl'>, mediaFile: File | null): Promise<Story | null> {
+        try {
+            const storyToSave: any = {
+                author: { // Sanitize author object
+                    id: storyData.author.id,
+                    name: storyData.author.name,
+                    username: storyData.author.username,
+                    avatarUrl: storyData.author.avatarUrl,
+                },
+                type: storyData.type,
+                text: storyData.text,
+                textStyle: storyData.textStyle,
+                music: storyData.music,
+                privacy: storyData.privacy,
+                createdAt: serverTimestamp(),
+                viewedBy: [],
+                duration: 10, // Default duration for images/text
+            };
+
+            if (mediaFile) {
+                const { url: contentUrl } = await uploadMediaToCloudinary(mediaFile, `story_${storyData.author.id}_${Date.now()}`);
+                storyToSave.contentUrl = contentUrl;
+                
+                if (mediaFile.type.startsWith('video/')) {
+                    storyToSave.duration = 15; // Longer default duration for video stories
+                }
+            }
+            
+            const docRef = await addDoc(collection(db, 'stories'), removeUndefined(storyToSave));
+            
+            // Return a client-friendly story object
+            const createdStory: Story = {
+                ...storyData,
+                id: docRef.id,
+                contentUrl: storyToSave.contentUrl,
+                createdAt: new Date().toISOString(),
+                duration: storyToSave.duration,
+                viewedBy: [],
+            };
+            return createdStory;
+
+        } catch (error) {
+            console.error("Error creating story in Firebase:", error);
+            return null;
+        }
+    },
     getGroupById: async (groupId) => null,
     getSuggestedGroups: async (userId) => [],
     createGroup: async (creator, name, description, coverPhotoUrl, privacy, requiresApproval, category) => ({ id: '', creator, name, description, coverPhotoUrl, privacy, requiresApproval, category, members: [], memberCount: 0, admins: [], moderators: [], createdAt: '' }),
