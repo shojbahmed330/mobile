@@ -9,26 +9,39 @@ interface NotificationPanelProps {
   onNotificationClick: (notification: Notification) => void;
 }
 
-const TimeAgo: React.FC<{ date: string }> = ({ date }) => {
-    const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
-    
-    if (seconds < 5) return <>Just now</>;
-    if (seconds < 60) return <>{seconds}s</>;
+const TimeAgo: React.FC<{ date: string }> = ({ date: dateString }) => {
+    try {
+        const date = new Date(dateString);
+        // Check for invalid date, which could cause NaN and unexpected behavior
+        if (isNaN(date.getTime())) {
+            return <>a while ago</>;
+        }
 
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return <>{minutes}m</>;
+        const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
 
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return <>{hours}h</>;
+        if (seconds < 5) return <>Just now</>;
+        
+        let interval = seconds / 31536000; // year
+        if (interval > 1) return <>{Math.floor(interval)}y</>;
+        
+        interval = seconds / 2592000; // month
+        if (interval > 1) return <>{Math.floor(interval)}mo</>;
+        
+        interval = seconds / 86400; // day
+        if (interval > 1) return <>{Math.floor(interval)}d</>;
+        
+        interval = seconds / 3600; // hour
+        if (interval > 1) return <>{Math.floor(interval)}h</>;
+        
+        interval = seconds / 60; // minute
+        if (interval > 1) return <>{Math.floor(interval)}m</>;
+        
+        return <>{Math.floor(seconds)}s</>;
 
-    const days = Math.floor(hours / 24);
-    if (days < 30) return <>{days}d</>;
-    
-    const months = Math.floor(days / 30);
-    if (months < 12) return <>{months}mo</>;
-
-    const years = Math.floor(days / 365);
-    return <>{years}y</>;
+    } catch (e) {
+        console.error("Error parsing date for TimeAgo:", dateString, e);
+        return <>a while ago</>;
+    }
 };
 
 const NotificationItem: React.FC<{ notification: Notification; onClick: () => void }> = ({ notification, onClick }) => {
@@ -131,15 +144,22 @@ const NotificationItem: React.FC<{ notification: Notification; onClick: () => vo
 };
 
 const NotificationPanel: React.FC<NotificationPanelProps> = ({ notifications, onClose, onNotificationClick }) => {
+  // Sort notifications to ensure the newest is always on top.
+  const sortedNotifications = [...notifications].sort((a, b) => {
+    // Add guards for potentially nullish items or createdAt properties
+    if (!a?.createdAt || !b?.createdAt) return 0;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
   return (
-    <div className="absolute top-full right-0 mt-2 w-80 sm:w-96 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl z-50 overflow-hidden">
+    <div className="absolute top-full right-0 mt-2 w-80 sm:w-96 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl z-50 overflow-hidden animate-fade-in-fast">
       <div className="p-3 border-b border-slate-700 flex justify-between items-center">
         <h3 className="font-bold text-lg text-slate-100">Notifications</h3>
         {/* Future: Add a "Mark all as read" button */}
       </div>
       <div className="max-h-96 overflow-y-auto divide-y divide-slate-700/50">
-        {notifications.length > 0 ? (
-          notifications.filter(Boolean).map(n => <NotificationItem key={n.id} notification={n} onClick={() => onNotificationClick(n)} />)
+        {sortedNotifications.length > 0 ? (
+          sortedNotifications.filter(Boolean).map(n => <NotificationItem key={n.id} notification={n} onClick={() => onNotificationClick(n)} />)
         ) : (
           <p className="p-8 text-center text-slate-400">You have no notifications yet.</p>
         )}
