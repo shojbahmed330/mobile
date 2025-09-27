@@ -54,10 +54,11 @@ const ConversationItem: React.FC<{ conversation: Conversation; currentUserId: st
         switch (message.type) {
             case 'text':
                 return prefix + (message.text || '');
-            // FIX: Updated logic to use message.mediaUrl (string) instead of message.mediaUrls (array)
             case 'image':
+                const count = message.mediaUrls?.length || 0;
+                const photoText = count > 1 ? `Sent ${count} photos` : 'Sent a photo';
                 const captionText = message.caption ? `: ${message.caption}` : '';
-                return prefix + `Sent a photo${captionText} 📷`;
+                return prefix + `${photoText}${captionText} 📷`;
             case 'video':
                 return prefix + 'Sent a video 📹';
             case 'audio':

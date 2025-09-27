@@ -166,9 +166,8 @@ export interface Message {
   senderId: string;
   recipientId: string;
   text?: string;
-  // FIX: Changed from mediaUrls (array) to mediaUrl (string) to match implementation across the app.
-  mediaUrl?: string;
-  caption?: string;
+  mediaUrls?: string[]; // Allow multiple media URLs for a single message
+  caption?: string; // Caption for media
   audioUrl?: string;
   type: 'text' | 'image' | 'video' | 'audio' | 'call_history';
   createdAt: string;

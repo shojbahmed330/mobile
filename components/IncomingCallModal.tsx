@@ -12,8 +12,6 @@ const IncomingCallModal: React.FC<IncomingCallModalProps> = ({ call, onAccept, o
     const audioRef = useRef<HTMLAudioElement>(null);
 
     useEffect(() => {
-        // FIX: Replaced the Pixabay URL which was giving 403 Forbidden errors
-        // with a stable, permissible audio file link.
         const ringtone = new Audio('https://github.com/user-attachments/assets/e5e3a356-628d-4a1e-8438-4e2e4b31124c');
         ringtone.loop = true;
         ringtone.play().catch(e => console.log("Ringtone autoplay prevented"));

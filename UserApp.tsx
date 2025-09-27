@@ -162,8 +162,6 @@ const UserApp: React.FC = () => {
   const [voiceState, setVoiceState] = useState<VoiceState>(VoiceState.IDLE);
   const [ttsMessage, setTtsMessage] = useState<string>('Say a command...');
   const [lastCommand, setLastCommand] = useState<string | null>(null);
-  // FIX: Initialize scrollState with the enum member instead of a string literal.
-  // FIX: Initialize scrollState with the enum member instead of a string literal.
   const [scrollState, setScrollState] = useState<ScrollState>(ScrollState.NONE);
   const [headerSearchQuery, setHeaderSearchQuery] = useState('');
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
@@ -502,8 +500,6 @@ const UserApp: React.FC = () => {
 
   const handleCommand = useCallback((command: string) => {
     setVoiceState(VoiceState.PROCESSING);
-    // FIX: Use the ScrollState enum member for state updates.
-    // FIX: Use the ScrollState enum member for state updates.
     setScrollState(ScrollState.NONE);
     setLastCommand(command);
     setCommandInputValue('');
