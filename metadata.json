@@ -1,5 +1,5 @@
 {
-  "name": "Working 12, stop auto message box in opening, Video Camera Full work and seen both side,  3:30 AM/ 27 September",
+  "name": "Working 13, Notification working now, stop auto message box in opening, Video Camera Full work and seen both side,  4:10 PM/ 27 September",
   "description": "A fully voice-controlled social media application where you can sign up, log in, navigate your feed, post audio, comment, and more, all using your voice. This implementation simulates the voice experience through a text-based command interface powered by the Gemini API.",
   "requestFramePermissions": [
     "microphone",

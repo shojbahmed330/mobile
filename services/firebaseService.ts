@@ -112,13 +112,20 @@ const _createNotification = async (recipientId: string, type: Notification['type
             username: actor.username,
         };
 
+        // Explicitly construct the notification object to ensure data integrity
         const notificationData: Omit<Notification, 'id'> = {
             recipientId,
             type,
             user: actorInfo,
             read: false,
             createdAt: new Date().toISOString(),
-            ...options
+            post: options.post,
+            comment: options.comment,
+            groupId: options.groupId,
+            groupName: options.groupName,
+            campaignName: options.campaignName,
+            rejectionReason: options.rejectionReason,
+            message: options.message,
         };
 
         await addDoc(notificationRef, removeUndefined(notificationData));

@@ -63,11 +63,17 @@ const NotificationItem: React.FC<{ notification: Notification; onClick: () => vo
   }
 
   const getText = () => {
+    const postPreviewText = notification.post?.caption
+        ? `"${notification.post.caption.substring(0, 30)}${notification.post.caption.length > 30 ? '...' : ''}"`
+        : 'your post';
+    
+    const postPreview = <span className="italic text-slate-400">{postPreviewText}</span>;
+
     switch (notification.type) {
       case 'like':
-        return <><span className="font-bold">{notification.user.name}</span> liked your post.</>;
+        return <><span className="font-bold">{notification.user.name}</span> liked {postPreview}.</>;
       case 'comment':
-        return <><span className="font-bold">{notification.user.name}</span> commented on your post.</>;
+        return <><span className="font-bold">{notification.user.name}</span> commented on {postPreview}.</>;
       case 'mention':
         return <><span className="font-bold">{notification.user.name}</span> mentioned you in a {notification.comment ? 'comment' : 'post'}.</>;
       case 'friend_request':
