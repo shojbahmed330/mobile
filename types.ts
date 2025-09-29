@@ -166,8 +166,7 @@ export interface Message {
   senderId: string;
   recipientId: string;
   text?: string;
-  mediaUrls?: string[]; // Allow multiple media URLs for a single message
-  caption?: string; // Caption for media
+  mediaUrl?: string;
   audioUrl?: string;
   type: 'text' | 'image' | 'video' | 'audio' | 'call_history';
   createdAt: string;

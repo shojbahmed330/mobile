@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Post, User, ScrollState, Campaign, AppView, Story, Comment } from '../types';
 import { PostCard } from './PostCard';
@@ -119,16 +118,16 @@ const FeedScreen: React.FC<FeedScreenProps> = ({
 
   useEffect(() => {
     const scrollContainer = feedContainerRef.current;
-    if (!scrollContainer || scrollState === ScrollState.NONE) {
+    if (!scrollContainer || scrollState === 'none') {
         return;
     }
 
     let animationFrameId: number;
 
     const animateScroll = () => {
-        if (scrollState === ScrollState.DOWN) {
+        if (scrollState === 'down') {
             scrollContainer.scrollTop += 2;
-        } else if (scrollState === ScrollState.UP) {
+        } else if (scrollState === 'up') {
             scrollContainer.scrollTop -= 2;
         }
         animationFrameId = requestAnimationFrame(animateScroll);
@@ -263,12 +262,15 @@ const FeedScreen: React.FC<FeedScreenProps> = ({
             }
             break;
           case 'intent_scroll_down':
+              // FIX: Use the ScrollState enum member instead of a string literal.
               onSetScrollState(ScrollState.DOWN);
               break;
           case 'intent_scroll_up':
+              // FIX: Use the ScrollState enum member instead of a string literal.
               onSetScrollState(ScrollState.UP);
               break;
           case 'intent_stop_scroll':
+              // FIX: Use the ScrollState enum member instead of a string literal.
               onSetScrollState(ScrollState.NONE);
               break;
           case 'intent_help':

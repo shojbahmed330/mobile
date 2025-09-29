@@ -55,10 +55,7 @@ const ConversationItem: React.FC<{ conversation: Conversation; currentUserId: st
             case 'text':
                 return prefix + (message.text || '');
             case 'image':
-                const count = message.mediaUrls?.length || 0;
-                const photoText = count > 1 ? `Sent ${count} photos` : 'Sent a photo';
-                const captionText = message.caption ? `: ${message.caption}` : '';
-                return prefix + `${photoText}${captionText} 📷`;
+                return prefix + 'Sent an image 📷';
             case 'video':
                 return prefix + 'Sent a video 📹';
             case 'audio':

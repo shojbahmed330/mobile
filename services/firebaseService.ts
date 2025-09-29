@@ -154,6 +154,32 @@ const _parseMentions = async (text: string): Promise<string[]> => {
 };
 
 
+// --- New Cloudinary Upload Helper ---
+const uploadMediaToCloudinary = async (file: File | Blob, fileName: string): Promise<{ url: string, type: 'image' | 'video' | 'raw' }> => {
+    const formData = new FormData();
+    formData.append('file', file, fileName);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    
+    let resourceType = 'auto';
+    if (file.type.startsWith('video')) resourceType = 'video';
+    else if (file.type.startsWith('image')) resourceType = 'image';
+    else if (file.type.startsWith('audio')) resourceType = 'video'; // Cloudinary treats audio as video for transformations/delivery
+    
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
+        method: 'POST',
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Cloudinary upload error:', errorData);
+        throw new Error('Failed to upload media to Cloudinary');
+    }
+
+    const data = await response.json();
+    return { url: data.secure_url, type: data.resource_type };
+};
+
 // --- Ad Targeting Helper ---
 const matchesTargeting = (campaign: Campaign, user: User): boolean => {
     if (!campaign.targeting) return true; // No targeting set, matches everyone
@@ -191,32 +217,6 @@ const matchesTargeting = (campaign: Campaign, user: User): boolean => {
 
 // --- Service Definition ---
 export const firebaseService = {
-    // --- New Cloudinary Upload Helper ---
-    uploadMediaToCloudinary: async (file: File | Blob, fileName: string): Promise<{ url: string, type: 'image' | 'video' | 'raw' }> => {
-        const formData = new FormData();
-        formData.append('file', file, fileName);
-        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-        
-        let resourceType = 'auto';
-        if (file.type.startsWith('video')) resourceType = 'video';
-        else if (file.type.startsWith('image')) resourceType = 'image';
-        else if (file.type.startsWith('audio')) resourceType = 'video'; // Cloudinary treats audio as video for transformations/delivery
-        
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
-            method: 'POST',
-            body: formData,
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.error('Cloudinary upload error:', errorData);
-            throw new Error('Failed to upload media to Cloudinary');
-        }
-
-        const data = await response.json();
-        return { url: data.secure_url, type: data.resource_type };
-    },
-
     // --- Authentication ---
     onAuthStateChanged: (callback: (userAuth: { id: string } | null) => void) => {
         return onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
@@ -717,7 +717,7 @@ export const firebaseService = {
         const userId = user.id;
 
         if (media.mediaFile) {
-            const { url, type } = await firebaseService.uploadMediaToCloudinary(media.mediaFile, `post_${userId}_${Date.now()}`);
+            const { url, type } = await uploadMediaToCloudinary(media.mediaFile, `post_${userId}_${Date.now()}`);
             if (type === 'video') {
                 postToSave.videoUrl = url;
             } else {
@@ -727,13 +727,13 @@ export const firebaseService = {
         
         if (media.generatedImageBase64) {
             const blob = await fetch(media.generatedImageBase64).then(res => res.blob());
-            const { url } = await firebaseService.uploadMediaToCloudinary(blob, `post_ai_${userId}_${Date.now()}.jpeg`);
+            const { url } = await uploadMediaToCloudinary(blob, `post_ai_${userId}_${Date.now()}.jpeg`);
             postToSave.imageUrl = url;
         }
 
         if (media.audioBlobUrl) {
             const audioBlob = await fetch(media.audioBlobUrl).then(r => r.blob());
-            const { url } = await firebaseService.uploadMediaToCloudinary(audioBlob, `post_audio_${userId}_${Date.now()}.webm`);
+            const { url } = await uploadMediaToCloudinary(audioBlob, `post_audio_${userId}_${Date.now()}.webm`);
             postToSave.audioUrl = url;
         }
 
@@ -905,11 +905,11 @@ export const firebaseService = {
         if (data.audioBlob && data.duration) {
             newComment.type = 'audio';
             newComment.duration = data.duration;
-            const { url } = await firebaseService.uploadMediaToCloudinary(data.audioBlob, `comment_audio_${newComment.id}.webm`);
+            const { url } = await uploadMediaToCloudinary(data.audioBlob, `comment_audio_${newComment.id}.webm`);
             newComment.audioUrl = url;
         } else if (data.imageFile) {
             newComment.type = 'image';
-            const { url } = await firebaseService.uploadMediaToCloudinary(data.imageFile, `comment_image_${newComment.id}.jpeg`);
+            const { url } = await uploadMediaToCloudinary(data.imageFile, `comment_image_${newComment.id}.jpeg`);
             newComment.imageUrl = url;
         } else if (data.text) {
             newComment.type = 'text';
@@ -1196,7 +1196,7 @@ export const firebaseService = {
         if (messageContent.mediaUrl) newMessage.mediaUrl = messageContent.mediaUrl; // Added for animated emojis
 
         if (messageContent.mediaFile) {
-            const { url } = await firebaseService.uploadMediaToCloudinary(messageContent.mediaFile, `chat_${chatId}_${Date.now()}`);
+            const { url } = await uploadMediaToCloudinary(messageContent.mediaFile, `chat_${chatId}_${Date.now()}`);
             newMessage.mediaUrl = url;
             if(messageContent.type === 'video') {
                 newMessage.type = 'video';
@@ -1204,7 +1204,7 @@ export const firebaseService = {
                 newMessage.type = 'image';
             }
         } else if (messageContent.audioBlob) {
-            const { url } = await firebaseService.uploadMediaToCloudinary(messageContent.audioBlob, `chat_audio_${chatId}_${Date.now()}.webm`);
+            const { url } = await uploadMediaToCloudinary(messageContent.audioBlob, `chat_audio_${chatId}_${Date.now()}.webm`);
             newMessage.audioUrl = url;
             newMessage.type = 'audio';
         }
@@ -1383,7 +1383,7 @@ export const firebaseService = {
         const userRef = doc(db, 'users', userId);
         try {
             const blob = await fetch(base64Url).then(res => res.blob());
-            const { url: newAvatarUrl } = await firebaseService.uploadMediaToCloudinary(blob, `avatar_${userId}_${Date.now()}.jpeg`);
+            const { url: newAvatarUrl } = await uploadMediaToCloudinary(blob, `avatar_${userId}_${Date.now()}.jpeg`);
 
             await updateDoc(userRef, { avatarUrl: newAvatarUrl });
 
@@ -1429,7 +1429,7 @@ export const firebaseService = {
         const userRef = doc(db, 'users', userId);
         try {
             const blob = await fetch(base64Url).then(res => res.blob());
-            const { url: newCoverUrl } = await firebaseService.uploadMediaToCloudinary(blob, `cover_${userId}_${Date.now()}.jpeg`);
+            const { url: newCoverUrl } = await uploadMediaToCloudinary(blob, `cover_${userId}_${Date.now()}.jpeg`);
 
             await updateDoc(userRef, { coverPhotoUrl: newCoverUrl });
 

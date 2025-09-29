@@ -96,21 +96,8 @@ const MessageBubble: React.FC<{
     const renderContent = () => {
         if (message.isDeleted) return <p className="italic text-sm text-slate-400">Message unsent</p>;
         switch (message.type) {
-            case 'image':
-                 if (!message.mediaUrls || message.mediaUrls.length === 0) return null;
-                 const gridCols = message.mediaUrls.length >= 4 ? 'grid-cols-2' : `grid-cols-${message.mediaUrls.length}`;
-                 const gridClass = message.mediaUrls.length > 1 ? `grid ${gridCols} gap-1` : '';
-                 return (
-                     <div className="flex flex-col gap-1">
-                         <div className={gridClass}>
-                             {message.mediaUrls.map(url => (
-                                 <img key={url} src={url} alt="Sent content" className="max-w-xs max-h-60 w-full object-cover rounded-lg cursor-pointer" />
-                             ))}
-                         </div>
-                         {message.caption && <p className={`mt-1 text-sm ${theme.text}`}>{message.caption}</p>}
-                     </div>
-                 );
-            case 'video': return <video src={message.mediaUrls?.[0]} controls className="max-w-xs max-h-48 rounded-lg" />;
+            case 'image': return <img src={message.mediaUrl} alt="Sent" className="max-w-xs max-h-48 rounded-lg cursor-pointer" />;
+            case 'video': return <video src={message.mediaUrl} controls className="max-w-xs max-h-48 rounded-lg" />;
             case 'audio': return <audio src={message.audioUrl} controls className="w-48 h-10" />;
             case 'call_history':
                 const isMissed = message.callStatus === 'missed' || message.callStatus === 'declined' || message.callStatus === 'rejected';
@@ -193,7 +180,7 @@ const MessageBubble: React.FC<{
                         </div>
                     )}
                 </div>
-                 <div className={`text-xs flex items-center gap-1.5 ${isMe ? 'pr-2' : 'pl-2'} ${theme.text === 'text-white' ? 'text-slate-400' : 'text-slate-600'}`}>
+                 <div className={`text-xs text-slate-500 flex items-center gap-1.5 ${isMe ? 'pr-2' : 'pl-2'}`}>
                     <span>{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     {isMe && !message.isDeleted && (
                         message.read
@@ -205,51 +192,6 @@ const MessageBubble: React.FC<{
         </div>
     );
 };
-
-const MediaPreview: React.FC<{
-    files: File[];
-    caption: string;
-    onCaptionChange: (caption: string) => void;
-    onSend: () => void;
-    onCancel: () => void;
-    isUploading: boolean;
-}> = ({ files, caption, onCaptionChange, onSend, onCancel, isUploading }) => {
-    const previews = useMemo(() => files.map(file => URL.createObjectURL(file)), [files]);
-    useEffect(() => {
-        return () => previews.forEach(url => URL.revokeObjectURL(url));
-    }, [previews]);
-
-    return (
-        <div className="absolute inset-0 bg-slate-800 z-20 flex flex-col p-2">
-            <header className="flex-shrink-0 flex justify-between items-center p-2">
-                <button onClick={onCancel} className="p-2 rounded-full hover:bg-slate-700"><Icon name="close" className="w-6 h-6 text-slate-300"/></button>
-                <h3 className="font-bold text-slate-200">Send {files.length} {files.length > 1 ? 'items' : 'item'}</h3>
-                <div className="w-10"></div>
-            </header>
-            <main className="flex-grow overflow-y-auto p-2">
-                <div className="grid grid-cols-2 gap-2">
-                    {previews.map((url, i) => (
-                        <img key={i} src={url} alt={`preview ${i}`} className="w-full h-full object-cover rounded-lg aspect-square"/>
-                    ))}
-                </div>
-            </main>
-            <footer className="flex-shrink-0 p-2">
-                 <div className="flex items-center gap-2 bg-slate-700 rounded-full p-1">
-                    <input
-                        type="text"
-                        value={caption}
-                        onChange={(e) => onCaptionChange(e.target.value)}
-                        placeholder="Add a caption..."
-                        className="flex-grow bg-transparent px-3 py-2 text-slate-200 focus:outline-none"
-                    />
-                    <button onClick={onSend} disabled={isUploading} className="p-2.5 rounded-full bg-fuchsia-600 text-white hover:bg-fuchsia-500 disabled:bg-slate-500">
-                        {isUploading ? <div className="w-6 h-6 border-2 border-white/50 border-t-white rounded-full animate-spin"></div> : <Icon name="paper-airplane" className="w-6 h-6" />}
-                    </button>
-                </div>
-            </footer>
-        </div>
-    )
-}
 
 
 const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser, peerUser, onClose, onMinimize, onHeaderClick, isMinimized, unreadCount, setIsChatRecording, onNavigate, onSetTtsMessage, onBlockUser }) => {
@@ -264,11 +206,6 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser, peerUser, onClose,
   const [settings, setSettings] = useState<ChatSettings>({ theme: 'default' });
   const [isThemePickerOpen, setThemePickerOpen] = useState(false);
   const [isEmojiPickerOpen, setEmojiPickerOpen] = useState(false);
-
-  // New state for multi-image upload
-  const [mediaToPreview, setMediaToPreview] = useState<File[]>([]);
-  const [captionForMedia, setCaptionForMedia] = useState('');
-  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mediaInputRef = useRef<HTMLInputElement>(null);
@@ -325,7 +262,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser, peerUser, onClose,
     setReplyingTo(null);
   };
   
-  const handleSendMediaMessage = async (mediaContent: any) => {
+  const handleSendMediaMessage = async (mediaContent: { type: 'image' | 'video' | 'audio', mediaFile?: File, audioBlob?: Blob, mediaUrl?: string, duration?: number }) => {
     const replyToInfo = replyingTo ? geminiService.createReplySnippet(replyingTo) : undefined;
     await firebaseService.sendMessage(chatId, currentUser, peerUser, { ...mediaContent, replyTo: replyToInfo });
     setReplyingTo(null);
@@ -344,42 +281,12 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser, peerUser, onClose,
   };
   
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = e.target.files;
-      if (files && files.length > 0) {
-        setMediaToPreview(Array.from(files));
-      }
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const type = file.type.startsWith('video') ? 'video' : 'image';
+      await handleSendMediaMessage({ type, mediaFile: file });
       e.target.value = '';
   };
-  
-   const handleSendWithMedia = async () => {
-    if (mediaToPreview.length === 0 || isUploadingMedia) return;
-    setIsUploadingMedia(true);
-
-    try {
-        const uploadPromises = mediaToPreview.map(file => 
-            firebaseService.uploadMediaToCloudinary(file, `chat_${chatId}_${Date.now()}`)
-        );
-        const uploadResults = await Promise.all(uploadPromises);
-        const urls = uploadResults.map(res => res.url);
-        
-        const replyToInfo = replyingTo ? geminiService.createReplySnippet(replyingTo) : undefined;
-        await firebaseService.sendMessage(chatId, currentUser, peerUser, {
-            type: 'image',
-            mediaUrls: urls,
-            caption: captionForMedia,
-            replyTo: replyToInfo,
-        });
-        
-        setMediaToPreview([]);
-        setCaptionForMedia('');
-        setReplyingTo(null);
-    } catch (error) {
-        console.error("Failed to send media message:", error);
-        onSetTtsMessage("Failed to send media. Please try again.");
-    } finally {
-        setIsUploadingMedia(false);
-    }
-};
 
   const handleStartRecording = async () => {
     if (recordingState !== RecordingState.IDLE) return;
@@ -447,16 +354,6 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser, peerUser, onClose,
 
   return (
     <div className={`fixed md:relative bottom-0 left-0 right-0 h-full md:w-80 md:h-[500px] ${backgroundClass} md:rounded-t-lg flex flex-col shadow-2xl border border-b-0 border-slate-700 font-sans`}>
-        {mediaToPreview.length > 0 && (
-            <MediaPreview 
-                files={mediaToPreview}
-                caption={captionForMedia}
-                onCaptionChange={setCaptionForMedia}
-                onSend={handleSendWithMedia}
-                onCancel={() => { setMediaToPreview([]); setCaptionForMedia(''); }}
-                isUploading={isUploadingMedia}
-            />
-        )}
         {isThemePickerOpen && (
               <div className="absolute top-14 right-2 mt-1 w-64 bg-slate-800/90 backdrop-blur-md border border-slate-600 rounded-lg shadow-2xl z-30 p-2 animate-fade-in-fast">
                   <div className="grid grid-cols-5 gap-2">
@@ -498,7 +395,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser, peerUser, onClose,
             <div className="h-48 overflow-y-auto p-2 bg-slate-800/80 rounded-lg mb-2 no-scrollbar">
                 <div className="grid grid-cols-5 gap-2">
                     {ANIMATED_EMOJIS.map(emoji => (
-                        <button key={emoji.name} onClick={() => { handleSendMediaMessage({ type: 'image', mediaUrls: [emoji.url] }); setEmojiPickerOpen(false); }} className="p-1 aspect-square flex items-center justify-center hover:bg-slate-700/50 rounded-md">
+                        <button key={emoji.name} onClick={() => { handleSendMediaMessage({ type: 'image', mediaUrl: emoji.url }); setEmojiPickerOpen(false); }} className="p-1 aspect-square flex items-center justify-center hover:bg-slate-700/50 rounded-md">
                             <img src={emoji.url} alt={emoji.name} className="w-10 h-10" />
                         </button>
                     ))}
@@ -507,7 +404,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser, peerUser, onClose,
         )}
         {replyingTo && <div className="text-xs text-slate-400 px-2 pb-1 flex justify-between items-center bg-slate-700/50 rounded-t-md -mx-2 -mt-2 mb-2 p-2"><span>Replying to {replyingTo.senderId === currentUser.id ? 'yourself' : peerUser.name}</span><button onClick={() => setReplyingTo(null)} className="font-bold"><Icon name="close" className="w-4 h-4" /></button></div>}
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
-          <input type="file" ref={mediaInputRef} onChange={handleFileChange} accept="image/*,video/*" multiple className="hidden"/>
+          <input type="file" ref={mediaInputRef} onChange={handleFileChange} accept="image/*,video/*" className="hidden"/>
           <button type="button" onClick={() => mediaInputRef.current?.click()} className="p-2 rounded-full text-fuchsia-400 hover:bg-slate-700/50"><Icon name="add-circle" className="w-6 h-6"/></button>
           {newMessage.trim() === '' && !audioPreview && recordingState === RecordingState.IDLE ? (<button type="button" onClick={handleStartRecording} className="p-2 rounded-full text-fuchsia-400 hover:bg-slate-700/50"><Icon name="mic" className="w-6 h-6"/></button>) : null}
           <div className="flex-grow">
