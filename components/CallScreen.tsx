@@ -135,24 +135,35 @@ const CallScreen: React.FC<CallScreenProps> = ({ currentUser, peerUser, callId, 
             if (!token) throw new Error("Failed to retrieve Agora token.");
             await client.join(AGORA_APP_ID, callId, token, uid);
 
-            const tracks: (IMicrophoneAudioTrack | ICameraVideoTrack)[] = [];
+            const tracksToPublish: (IMicrophoneAudioTrack | ICameraVideoTrack)[] = [];
+            
             try {
                 const audio = await AgoraRTC.createMicrophoneAudioTrack();
                 localAudioTrack.current = audio;
-                tracks.push(audio);
+                tracksToPublish.push(audio);
                 setIsMicAvailable(true);
-            } catch (e) { console.warn("Could not get mic", e); setIsMicAvailable(false); setIsMuted(true); }
+            } catch (e) {
+                console.warn("Could not get mic", e);
+                setIsMicAvailable(false);
+                setIsMuted(true);
+            }
 
             if (callType === 'video') {
                 try {
                     const video = await AgoraRTC.createCameraVideoTrack();
                     localVideoTrack.current = video;
                     setLocalVideoTrackState(video);
-                    tracks.push(video);
+                    tracksToPublish.push(video);
                     setIsCamAvailable(true);
-                } catch (e) { console.warn("Could not get cam", e); setIsCamAvailable(false); setIsCameraOff(true); }
+                } catch (e) {
+                    console.warn("Could not get cam", e);
+                    setIsCamAvailable(false);
+                    setIsCameraOff(true);
+                }
             }
-            if(tracks.length > 0) await client.publish(tracks);
+            if(tracksToPublish.length > 0) {
+                await client.publish(tracksToPublish);
+            }
         };
 
         if (call?.type) {
