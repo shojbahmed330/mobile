@@ -1890,11 +1890,52 @@ export const firebaseService = {
     },
 
     // --- Rooms, Campaigns, Stories, Groups, Admin, etc. (Stubs for brevity) ---
-    // These functions would contain the full Firebase logic, including creating notifications where applicable.
     listenToLiveAudioRooms: (callback) => onSnapshot(query(collection(db, 'liveAudioRooms'), where('status', '==', 'live')), s => callback(s.docs.map(d => ({id: d.id, ...d.data()})))),
     listenToLiveVideoRooms: (callback) => onSnapshot(query(collection(db, 'liveVideoRooms'), where('status', '==', 'live')), s => callback(s.docs.map(d => ({id: d.id, ...d.data()})))),
-    createLiveAudioRoom: async (host, topic) => { const ref = await addDoc(collection(db, 'liveAudioRooms'), {}); return { id: ref.id, host, topic, speakers: [host], listeners: [], raisedHands: [], createdAt: '', status: 'live' }; },
-    createLiveVideoRoom: async (host, topic) => { const ref = await addDoc(collection(db, 'liveVideoRooms'), {}); return { id: ref.id, host, topic, participants: [], createdAt: '', status: 'live' }; },
+    createLiveAudioRoom: async (host, topic) => { 
+        try {
+            const hostAuthor = { id: host.id, name: host.name, avatarUrl: host.avatarUrl, username: host.username };
+            const roomData = {
+                host: hostAuthor,
+                topic,
+                speakers: [hostAuthor],
+                listeners: [],
+                raisedHands: [],
+                createdAt: serverTimestamp(),
+                status: 'live',
+            };
+            const ref = await addDoc(collection(db, 'liveAudioRooms'), roomData);
+            return {
+                ...roomData,
+                id: ref.id,
+                createdAt: new Date().toISOString(), // return an approximate value for immediate navigation
+            };
+        } catch (error) {
+            console.error("Error creating audio room:", error);
+            return null;
+        }
+    },
+    createLiveVideoRoom: async (host, topic) => { 
+        try {
+            const hostAuthor = { id: host.id, name: host.name, avatarUrl: host.avatarUrl, username: host.username };
+            const roomData = {
+                host: hostAuthor,
+                topic,
+                participants: [], // Host will be added when they join the screen
+                createdAt: serverTimestamp(),
+                status: 'live',
+            };
+            const ref = await addDoc(collection(db, 'liveVideoRooms'), roomData);
+             return {
+                ...roomData,
+                id: ref.id,
+                createdAt: new Date().toISOString(),
+            };
+        } catch(error) {
+            console.error("Error creating video room:", error);
+            return null;
+        }
+    },
     getCampaignsForSponsor: async (sponsorId) => [],
     submitCampaignForApproval: async (campaignData, transactionId) => {
         const campaignToSave = { ...campaignData, views: 0, clicks: 0, status: 'pending', transactionId };
